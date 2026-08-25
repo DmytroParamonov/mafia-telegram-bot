@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import secrets
 from datetime import UTC, datetime
 
 from sqlalchemy import BigInteger, Boolean, ForeignKey, Integer, String, UniqueConstraint
@@ -8,6 +9,10 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 def utc_ts() -> int:
     return int(datetime.now(UTC).timestamp())
+
+
+def new_join_code() -> str:
+    return secrets.token_urlsafe(6)
 
 
 class Base(DeclarativeBase):
@@ -32,6 +37,7 @@ class Game(Base):
     chat_title: Mapped[str | None] = mapped_column(String(255), nullable=True)
     host_user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), index=True)
     lobby_message_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    join_code: Mapped[str] = mapped_column(String(24), default=new_join_code)
 
     status: Mapped[str] = mapped_column(String(32), default="lobby", index=True)
     phase: Mapped[str] = mapped_column(String(32), default="lobby")

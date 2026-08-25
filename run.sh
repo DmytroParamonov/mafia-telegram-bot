@@ -70,7 +70,8 @@ fi
 source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -e .
+python -c 'import greenlet' >/dev/null 2>&1 || python -m pip install 'greenlet>=3.1,<4'
 
 echo
- echo "✅ Бот запускается. Для остановки нажми Ctrl+C."
+echo "✅ Бот запускается. Для остановки нажми Ctrl+C."
 exec python -m app.main

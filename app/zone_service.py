@@ -5,9 +5,8 @@ import html
 from collections import defaultdict
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from sqlalchemy import select
 
-from app.models import Game, GamePlayer
+from app.models import Game
 from app.service import GameError, GameService
 from app.zone_features import READY_SECONDS, choose_zone_event
 

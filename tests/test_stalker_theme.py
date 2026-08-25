@@ -12,11 +12,11 @@ def test_lobby_text_is_rethemed() -> None:
         "🩺 Доктор: ✅"
     )
     themed = stalkerize_text(source)
-    assert "НОВАЯ ХОДКА В ЗОНУ" in themed
-    assert "Старший группы" in themed
+    assert "НОВА ХОДКА В ЗОНУ" in themed
+    assert "Старший групи" in themed
     assert "Авторитет" in themed
-    assert "Разведчик" in themed
-    assert "Полевой медик" in themed
+    assert "Розвідник" in themed
+    assert "Польовий медик" in themed
 
 
 def test_night_text_is_rethemed() -> None:
@@ -24,8 +24,8 @@ def test_night_text_is_rethemed() -> None:
         "🌙 <b>Ночь 1</b>\n\n"
         "Город засыпает. Игроки с ночными ролями получили действия в личке."
     )
-    assert "Ночь в Зоне" in themed
-    assert "счётчик Гейгера" in themed
+    assert "Ніч у Зоні" in themed
+    assert "дозиметр" in themed
 
 
 def test_role_card_is_rethemed() -> None:
@@ -35,7 +35,7 @@ def test_role_card_is_rethemed() -> None:
     )
     assert "ПДА: твоя роль" in themed
     assert "Бандит" in themed
-    assert "бандитской братвы" in themed
+    assert "бандитської братви" in themed
 
 
 def test_inline_buttons_are_rethemed_without_touching_callback_data() -> None:
@@ -46,7 +46,7 @@ def test_inline_buttons_are_rethemed_without_touching_callback_data() -> None:
         ]
     )
     themed = stalkerize_markup(markup)
-    assert themed.inline_keyboard[0][0].text == "🚪 Выдвигаемся"
+    assert themed.inline_keyboard[0][0].text == "🚪 Вирушаємо"
     assert themed.inline_keyboard[0][0].callback_data == "l:start:42"
     assert themed.inline_keyboard[1][0].text == "👑 Авторитет ✅"
     assert themed.inline_keyboard[1][0].callback_data == "l:toggle_don:42"

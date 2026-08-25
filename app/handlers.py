@@ -52,8 +52,8 @@ async def start_command(
     )
 
 
-@router.message(Command("mafia"))
-async def mafia_command(message: Message, game_service: GameService) -> None:
+@router.message(Command("stalker", "mafia"))
+async def stalker_command(message: Message, game_service: GameService) -> None:
     if message.chat.type not in {ChatType.GROUP, ChatType.SUPERGROUP}:
         await message.answer("🎭 Новую игру нужно создавать в групповом чате командой /mafia.")
         return

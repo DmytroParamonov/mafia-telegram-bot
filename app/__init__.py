@@ -1,0 +1,1 @@
+"""Mafia Telegram bot package."""

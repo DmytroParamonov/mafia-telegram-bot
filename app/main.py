@@ -4,7 +4,7 @@ import asyncio
 import contextlib
 import logging
 
-from aiogram import Bot, Dispatcher
+from aiogram import Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.types import BotCommand
@@ -13,6 +13,7 @@ from app.config import Settings
 from app.db import init_db, make_engine, make_session_factory
 from app.handlers import router
 from app.service import GameService
+from app.stalker_theme import StalkerBot
 
 
 async def main() -> None:
@@ -26,7 +27,7 @@ async def main() -> None:
     session_factory = make_session_factory(engine)
     await init_db(engine)
 
-    bot = Bot(
+    bot = StalkerBot(
         token=settings.bot_token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
@@ -40,18 +41,18 @@ async def main() -> None:
 
     await bot.set_my_commands(
         [
-            BotCommand(command="mafia", description="Создать игру в группе"),
-            BotCommand(command="stats", description="Моя статистика"),
-            BotCommand(command="help", description="Как играть"),
+            BotCommand(command="stalker", description="☢️ Собрать ходку в Зону"),
+            BotCommand(command="stats", description="📟 Моя статистика"),
+            BotCommand(command="help", description="🔥 Правила ходки"),
         ]
     )
 
     dispatcher = Dispatcher()
     dispatcher.include_router(router)
-    scheduler_task = asyncio.create_task(game_service.phase_loop(), name="mafia-phase-scheduler")
+    scheduler_task = asyncio.create_task(game_service.phase_loop(), name="stalker-phase-scheduler")
 
     try:
-        logging.info("Starting @%s", me.username)
+        logging.info("Starting STALKER game bot @%s", me.username)
         await dispatcher.start_polling(bot, game_service=game_service)
     finally:
         scheduler_task.cancel()

@@ -4,12 +4,12 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 if [ ! -f .env ]; then
-  echo "🎭 Первый запуск Mafia Bot"
-  printf "Вставь токен от BotFather: "
+  echo "☢️ Перший запуск STALKER Bot"
+  printf "Встав токен від BotFather: "
   IFS= read -r BOT_TOKEN
 
   if [ -z "$BOT_TOKEN" ]; then
-    echo "❌ Токен пустой. Запусти ./run.sh ещё раз."
+    echo "❌ Токен порожній. Запусти ./run.sh ще раз."
     exit 1
   fi
 
@@ -26,18 +26,18 @@ PHASE_POLL_SECONDS=2
 EOF
 
   chmod 600 .env 2>/dev/null || true
-  echo "✅ .env создан."
+  echo "✅ .env створено."
 fi
 
 mkdir -p data
 
 if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-  echo "🐳 Docker найден — запускаю бота в фоне..."
+  echo "🐳 Docker знайдено — запускаю бота у фоні..."
   docker compose up -d --build
   echo
-  echo "✅ Бот запущен."
+  echo "✅ Бота запущено."
   echo "Логи: docker compose logs -f mafia-bot"
-  echo "Остановить: docker compose down"
+  echo "Зупинити: docker compose down"
   exit 0
 fi
 
@@ -50,17 +50,17 @@ for candidate in python3.13 python3.12 python3; do
 done
 
 if [ -z "$PYTHON_BIN" ]; then
-  echo "❌ Не найден Python 3.12+ и не найден Docker."
-  echo "Установи Python 3.12+ или Docker Desktop и снова запусти ./run.sh."
+  echo "❌ Не знайдено Python 3.12+ і не знайдено Docker."
+  echo "Встанови Python 3.12+ або Docker Desktop і знову запусти ./run.sh."
   exit 1
 fi
 
 if ! "$PYTHON_BIN" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 12) else 1)' >/dev/null 2>&1; then
-  echo "❌ Найденный Python слишком старый. Нужен Python 3.12+."
+  echo "❌ Знайдений Python занадто старий. Потрібен Python 3.12+."
   exit 1
 fi
 
-echo "🐍 Docker не найден — запускаю через $PYTHON_BIN..."
+echo "🐍 Docker не знайдено — запускаю через $PYTHON_BIN..."
 
 if [ ! -d .venv ]; then
   "$PYTHON_BIN" -m venv .venv
@@ -73,5 +73,5 @@ python -m pip install -e .
 python -c 'import greenlet' >/dev/null 2>&1 || python -m pip install 'greenlet>=3.1,<4'
 
 echo
-echo "✅ Бот запускается. Для остановки нажми Ctrl+C."
+echo "✅ Бота запущено. Для зупинки натисни Ctrl+C."
 exec python -m app.main

@@ -74,9 +74,7 @@ def vote_keyboard(
         [
             InlineKeyboardButton(
                 text=player.display_name,
-                callback_data=(
-                    f"v:{game_id}:{day_number}:{vote_round}:{player.user_id}"
-                ),
+                callback_data=f"v:{game_id}:{day_number}:{vote_round}:{player.user_id}",
             )
         ]
         for player in players
@@ -84,20 +82,37 @@ def vote_keyboard(
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def host_phase_keyboard(game_id: int) -> InlineKeyboardMarkup:
+def host_phase_keyboard(game: Game) -> InlineKeyboardMarkup:
+    token = f"{game.day_number}:{game.phase}"
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="⏭ Завершить фазу", callback_data=f"h:advance:{game_id}")],
-            [InlineKeyboardButton(text="🛑 Завершить игру", callback_data=f"h:end:{game_id}")],
+            [
+                InlineKeyboardButton(
+                    text="⏭ Завершить фазу",
+                    callback_data=f"h:advance:{game.id}:{token}",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="🛑 Завершить игру",
+                    callback_data=f"h:end:{game.id}:{token}",
+                )
+            ],
         ]
     )
 
 
-def confirm_end_keyboard(game_id: int) -> InlineKeyboardMarkup:
+def confirm_end_keyboard(game: Game) -> InlineKeyboardMarkup:
+    token = f"{game.day_number}:{game.phase}"
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🛑 Да, завершить", callback_data=f"h:confirm_end:{game_id}")],
-            [InlineKeyboardButton(text="↩️ Нет", callback_data=f"h:dismiss:{game_id}")],
+            [
+                InlineKeyboardButton(
+                    text="🛑 Да, завершить",
+                    callback_data=f"h:confirm_end:{game.id}:{token}",
+                )
+            ],
+            [InlineKeyboardButton(text="↩️ Нет", callback_data=f"h:dismiss:{game.id}")],
         ]
     )
 
@@ -105,6 +120,11 @@ def confirm_end_keyboard(game_id: int) -> InlineKeyboardMarkup:
 def rematch_keyboard(game_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🔄 Реванш тем же составом", callback_data=f"h:rematch:{game_id}")]
+            [
+                InlineKeyboardButton(
+                    text="🔄 Реванш тем же составом",
+                    callback_data=f"h:rematch:{game_id}",
+                )
+            ]
         ]
     )

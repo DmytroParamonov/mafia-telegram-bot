@@ -12,8 +12,9 @@ from aiogram.types import BotCommand
 from app.config import Settings
 from app.db import init_db, make_engine, make_session_factory
 from app.handlers import router
-from app.service import GameService
 from app.stalker_theme import StalkerBot
+from app.zone_handlers import router as zone_router
+from app.zone_service import ZoneGameService
 
 
 async def main() -> None:
@@ -32,7 +33,7 @@ async def main() -> None:
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
     me = await bot.get_me()
-    game_service = GameService(
+    game_service = ZoneGameService(
         bot=bot,
         session_factory=session_factory,
         bot_username=me.username or str(me.id),
@@ -41,13 +42,14 @@ async def main() -> None:
 
     await bot.set_my_commands(
         [
-            BotCommand(command="stalker", description="☢️ Собрать ходку в Зону"),
+            BotCommand(command="stalker", description="☢️ Зібрати ходку в Зону"),
             BotCommand(command="stats", description="📟 Моя статистика"),
             BotCommand(command="help", description="🔥 Правила ходки"),
         ]
     )
 
     dispatcher = Dispatcher()
+    dispatcher.include_router(zone_router)
     dispatcher.include_router(router)
     scheduler_task = asyncio.create_task(game_service.phase_loop(), name="stalker-phase-scheduler")
 

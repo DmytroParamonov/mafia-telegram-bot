@@ -12,7 +12,7 @@ from aiogram.types import BotCommand
 from app.config import Settings
 from app.db import init_db, make_engine, make_session_factory
 from app.handlers import router
-from app.playtest_service import PlaytestGameService
+from app.private_art_service import PrivateArtGameService
 from app.role_cards import prepare_role_card_pack
 from app.stalker_theme import StalkerBot
 from app.test_mode import router as test_router
@@ -38,7 +38,7 @@ async def main() -> None:
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
     me = await bot.get_me()
-    game_service = PlaytestGameService(
+    game_service = PrivateArtGameService(
         bot=bot,
         session_factory=session_factory,
         bot_username=me.username or str(me.id),

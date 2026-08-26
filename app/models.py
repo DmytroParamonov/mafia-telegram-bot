@@ -52,6 +52,9 @@ class Game(Base):
     enable_sheriff: Mapped[bool] = mapped_column(Boolean, default=True)
     enable_doctor: Mapped[bool] = mapped_column(Boolean, default=True)
     reveal_roles: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Separate optional mode. In classic mode Zone events are atmospheric only;
+    # in Live Zone mode deterministic events can modify phase mechanics.
+    live_zone: Mapped[bool] = mapped_column(Boolean, default=False)
 
     created_at: Mapped[int] = mapped_column(Integer, default=utc_ts)
     started_at: Mapped[int | None] = mapped_column(Integer, nullable=True)

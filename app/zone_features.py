@@ -10,27 +10,29 @@ LAST_WORD_SECONDS = 30
 BANDIT_CHAT_SECONDS = 30
 ZONE_MAX_PLAYERS = 10
 
-# Exactly 20 callsigns are used by the ready PDA card pack.
+# Public identities are deliberately NOT tied to roles. Otherwise a known
+# Bandit-only nickname would reveal the player's secret role in the group.
+# The first 15 identities come from the current character/card roster.
 CALLSIGNS = (
-    "Шрам",
-    "Бугор",
-    "Ворон",
+    "Саня Кабан",
+    "Гоша Кекс",
+    "Вітя Шрам",
+    "Жека Гнилий",
+    "Толік Барсук",
+    "Серьога Ворон",
+    "Коля Тихий",
+    "Вадік Рижий",
+    "Паша Борода",
+    "Діма Філін",
+    "Ігор Крот",
+    "Вова Сєдой",
+    "Рома Яструб",
+    "Макс Монах",
+    "Льоха Кузнєц",
     "Туман",
-    "Грім",
-    "Борода",
-    "Сірий",
-    "Кріт",
-    "Кабан",
-    "Хмурий",
     "Лис",
     "Вовк",
-    "Ржавий",
     "Фантом",
-    "Яструб",
-    "Примара",
-    "Койот",
-    "Батон",
-    "Гак",
     "Корсар",
 )
 

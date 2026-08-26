@@ -18,7 +18,7 @@ CARD_ROLES = (
     Role.DOCTOR.value,
     Role.BLOODSUCKER.value,
 )
-CARD_PACK_VERSION = "v3-pda-100"
+CARD_PACK_VERSION = "v4-character-roster"
 CARD_ROOT = Path("data/role_cards_v3")
 
 ROLE_CODES = {

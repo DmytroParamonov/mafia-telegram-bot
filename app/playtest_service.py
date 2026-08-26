@@ -14,6 +14,7 @@ from app.game.rules import (
     build_zone_roles,
 )
 from app.keyboards import host_phase_keyboard
+from app.live_zone import live_zone_effect, phase_seconds
 from app.models import Game, utc_ts
 from app.role_cards import load_ready_role_card
 from app.service import GameError
@@ -22,12 +23,49 @@ from app.zone_service import ZoneGameService
 
 
 class PlaytestGameService(ZoneGameService):
-    """Playtest-v3 flow tweaks layered over the Zone game service."""
+    """Current STALKER MAFIA playtest flow layered over the Zone service."""
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         # The group settled on 3 minutes for regular daytime discussion.
         self.settings.discussion_seconds = 180
+
+    async def _lobby_view(self, game_id: int) -> tuple[str, object]:
+        text, markup = await super()._lobby_view(game_id)
+        async with self.session_factory() as session:
+            game = await session.get(Game, game_id)
+            if game is None:
+                raise GameError("Ходку не знайдено.")
+
+        if game.live_zone:
+            mode = (
+                "☢️ <b>Режим: Жива Зона</b>\n"
+                "Події можуть реально змінювати час нічних дій, сходки або голосування."
+            )
+        else:
+            mode = (
+                "🎯 <b>Режим: Класична ходка</b>\n"
+                "Події Зони атмосферні й не змінюють правила або таймери."
+            )
+        return f"{text}\n\n{mode}", markup
+
+    async def toggle_setting(self, game_id: int, host_user_id: int, setting_name: str) -> None:
+        if setting_name != "toggle_live_zone":
+            await super().toggle_setting(game_id, host_user_id, setting_name)
+            return
+        if game_id in self._ready_tasks:
+            raise GameError("Під час перевірки спорядження режим уже не змінюється.")
+
+        async with self._locks[game_id]:
+            async with self.session_factory() as session:
+                game = await session.get(Game, game_id)
+                if game is None or game.status != "lobby":
+                    raise GameError("Режим уже не можна змінювати.")
+                if game.host_user_id != host_user_id:
+                    raise GameError("Режим може змінювати лише старший групи.")
+                game.live_zone = not game.live_zone
+                await session.commit()
+        await self.refresh_lobby(game_id)
 
     async def _start_zone_game(self, game_id: int, host_user_id: int) -> None:
         async with self._locks[game_id]:
@@ -50,14 +88,21 @@ class PlaytestGameService(ZoneGameService):
                 game.phase_deadline = utc_ts() + INTRO_SECONDS
                 lobby_message_id = game.lobby_message_id
                 chat_id = game.chat_id
+                live_zone = game.live_zone
                 await session.commit()
 
         if lobby_message_id:
+            mode_line = (
+                "\n☢️ Активовано режим <b>«Жива Зона»</b>. Події можуть впливати на хід партії."
+                if live_zone
+                else ""
+            )
             try:
                 await self.bot.edit_message_text(
                     "☢️ <b>Група зібрана. Ходка почалася!</b>\n\n"
                     "Номери, позивні та ролі вже надійшли на особисті ПДА. "
-                    "Перед першою ніччю — знайомство біля багаття.",
+                    "Перед першою ніччю — знайомство біля багаття."
+                    f"{mode_line}",
                     chat_id=chat_id,
                     message_id=lobby_message_id,
                     reply_markup=None,
@@ -106,8 +151,7 @@ class PlaytestGameService(ZoneGameService):
                     caption=caption,
                 )
             except (OSError, ValueError):
-                # The ready pack is rebuilt automatically on the next request. If the
-                # filesystem itself is unavailable, the complete text card still works.
+                # If the card pack cannot be read, the complete text card still works.
                 try:
                     await self.bot.send_message(player.user_id, caption)
                 except TelegramForbiddenError:
@@ -148,6 +192,42 @@ class PlaytestGameService(ZoneGameService):
         except TelegramForbiddenError:
             pass
 
+    async def _apply_live_zone_effect(self, game_id: int, phase: str) -> None:
+        if phase not in {"night", "discussion", "voting"}:
+            return
+
+        async with self._locks[game_id]:
+            async with self.session_factory() as session:
+                game = await session.get(Game, game_id)
+                if (
+                    game is None
+                    or game.status != "active"
+                    or game.phase != phase
+                    or not game.live_zone
+                ):
+                    return
+
+                effect = live_zone_effect(game.id, game.day_number, phase)
+                if effect is None:
+                    return
+
+                base_seconds = {
+                    "night": self.settings.night_seconds,
+                    "discussion": self.settings.discussion_seconds,
+                    "voting": self.settings.voting_seconds,
+                }[phase]
+                seconds = phase_seconds(base_seconds, effect)
+                game.phase_deadline = utc_ts() + seconds
+                chat_id = game.chat_id
+                await session.commit()
+
+        await self.bot.send_message(
+            chat_id,
+            f"☢️ <b>ЖИВА ЗОНА — {effect.title}</b>\n\n"
+            f"{effect.text}\n\n"
+            f"⏱ Фактичний час цього етапу: <b>{seconds} сек.</b>",
+        )
+
     async def _begin_first_night(self, game_id: int) -> None:
         async with self.session_factory() as session:
             game = await session.get(Game, game_id)
@@ -157,6 +237,21 @@ class PlaytestGameService(ZoneGameService):
             game.phase_deadline = utc_ts() + self.settings.night_seconds
             await session.commit()
         await self._announce_night(game_id)
+        await self._apply_live_zone_effect(game_id, "night")
+
+    async def rematch(self, old_game_id: int, host_user_id: int) -> Game:
+        old = await self.get_game(old_game_id)
+        new_game = await super().rematch(old_game_id, host_user_id)
+        if not old.live_zone:
+            return new_game
+
+        async with self.session_factory() as session:
+            stored = await session.get(Game, new_game.id)
+            if stored is not None:
+                stored.live_zone = True
+                await session.commit()
+        await self.refresh_lobby(new_game.id)
+        return await self.get_game(new_game.id)
 
     async def advance_phase(
         self,
@@ -174,7 +269,8 @@ class PlaytestGameService(ZoneGameService):
         if expected_phase is not None and game.phase != expected_phase:
             raise GameError("Ця кнопка належить до попереднього етапу.")
 
-        if game.phase == "intro":
+        before_phase = game.phase
+        if before_phase == "intro":
             await self._begin_first_night(game_id)
             return
 
@@ -184,3 +280,7 @@ class PlaytestGameService(ZoneGameService):
             expected_day=expected_day,
             expected_phase=expected_phase,
         )
+
+        after = await self.get_game(game_id)
+        if after.status == "active" and after.phase != before_phase:
+            await self._apply_live_zone_effect(game_id, after.phase)

@@ -37,6 +37,7 @@ def test_test_menu_contains_preview_tools() -> None:
         "t:ready",
         "t:balance",
         "t:sim_menu",
+        "t:livezone",
         "t:event",
         "t:death",
         "t:morning",

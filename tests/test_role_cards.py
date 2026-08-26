@@ -10,5 +10,5 @@ def test_ready_role_card_is_jpeg() -> None:
 
 
 def test_ready_card_path_is_stable() -> None:
-    path = ready_role_card_path("mafia", "Бугор", root=Path("cards"))
+    path = ready_role_card_path("mafia", "Гоша Кекс", root=Path("cards"))
     assert path == Path("cards/mafia/01.jpg")

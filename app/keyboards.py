@@ -21,6 +21,12 @@ def lobby_keyboard(game: Game, join_url: str) -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text="🚪 Вирушаємо", callback_data=f"l:start:{game.id}")],
             [
                 InlineKeyboardButton(
+                    text=f"☢️ Жива Зона {yn(game.live_zone)}",
+                    callback_data=f"l:toggle_live_zone:{game.id}",
+                )
+            ],
+            [
+                InlineKeyboardButton(
                     text=f"🧛 Кровосос {yn(game.enable_don)}",
                     callback_data=f"l:toggle_don:{game.id}",
                 ),

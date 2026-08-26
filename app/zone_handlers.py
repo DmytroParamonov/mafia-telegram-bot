@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from aiogram import F, Router
+from aiogram.enums import ChatType
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, Message
 
 from app.service import GameError
 from app.zone_service import ZoneGameService
@@ -36,3 +37,12 @@ async def ready_callback(query: CallbackQuery, game_service: ZoneGameService) ->
             await query.message.answer("☢️ Усі готові. Група вирушила в Зону.")
         else:
             await query.message.answer("📟 ПДА: статус «готовий» передано старшому групи.")
+
+
+@router.message(F.chat.type == ChatType.PRIVATE, F.text)
+async def private_pda_text(message: Message, game_service: ZoneGameService) -> None:
+    if message.from_user is None or not message.text:
+        return
+    if message.text.startswith("/"):
+        return
+    await game_service.handle_private_text(message.from_user.id, message.text)

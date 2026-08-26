@@ -8,7 +8,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-from app.game.rules import ROLE_DESCRIPTIONS, ROLE_FACTIONS, ROLE_TITLES, Role
+from app.game.rules import ROLE_FACTIONS, ROLE_TITLES, Role
 from app.zone_features import CALLSIGNS
 
 CARD_ROLES = (

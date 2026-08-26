@@ -8,46 +8,91 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-PRIVATE_ART_ROOT = Path("assets/private_role_art")
+PRIVATE_ART_ROOT = Path("assets/private_role_art_v2")
 
 
 @dataclass(frozen=True, slots=True)
 class PrivateRoleArt:
     internal_name: str
+    role: str
     asset_key: str
 
 
-# Internal bookkeeping only. These names are never shown publicly and do not
-# replace a player's public callsign. The authored picture is visible only in
-# that player's private PDA.
+# These character names are internal art labels only. They are never published
+# to the group and never replace the public callsign, so the picture cannot leak
+# a secret role to other players.
 BANDIT_ART: tuple[PrivateRoleArt, ...] = (
-    PrivateRoleArt("Саня Кабан", "sanya_kaban"),
-    PrivateRoleArt("Гоша Кекс", "gosha_keks"),
-    PrivateRoleArt("Вітя Шрам", "vitya_shram"),
-    PrivateRoleArt("Жека Гнилий", "zheka_gniliy"),
-    PrivateRoleArt("Толік Барсук", "tolik_barsuk"),
+    PrivateRoleArt("Саня Кабан", "mafia", "sanya_kaban"),
+    PrivateRoleArt("Гоша Кекс", "mafia", "gosha_keks"),
+    PrivateRoleArt("Гриша Музарука", "mafia", "grisha_muzaruka"),
+    PrivateRoleArt("Жека Гнилий", "mafia", "zheka_gniliy"),
+    PrivateRoleArt("Толік Барсук", "mafia", "tolik_barsuk"),
 )
 
+CIVILIAN_ART: tuple[PrivateRoleArt, ...] = (
+    PrivateRoleArt("Серьога Ворон", "civilian", "seryoha_voron"),
+    PrivateRoleArt("Коля Тихий", "civilian", "kolya_tikhiy"),
+    PrivateRoleArt("Вадік Рижий", "civilian", "vadik_ryzhiy"),
+    PrivateRoleArt("Паша Борода", "civilian", "pasha_boroda"),
+    PrivateRoleArt("Діма Філін", "civilian", "dima_filin"),
+    PrivateRoleArt("Ігор Крот", "civilian", "igor_krot"),
+    PrivateRoleArt("Вова Сєдой", "civilian", "vova_sedoy"),
+    PrivateRoleArt("Рома Яструб", "civilian", "roma_yastrub"),
+    PrivateRoleArt("Макс Монах", "civilian", "maks_monakh"),
+    PrivateRoleArt("Льоха Кузнєц", "civilian", "lyokha_kuznets"),
+)
 
-def bandit_art_assignments(game_id: int, user_ids: Sequence[int]) -> dict[int, PrivateRoleArt]:
-    """Assign distinct authored bandit portraits deterministically for one game."""
+DOCTOR_ART: tuple[PrivateRoleArt, ...] = (
+    PrivateRoleArt("Польовий медик", "doctor", "doctor"),
+)
+
+SCOUT_ART: tuple[PrivateRoleArt, ...] = (
+    PrivateRoleArt("Розвідник", "sheriff", "scout"),
+)
+
+BLOODSUCKER_ART: tuple[PrivateRoleArt, ...] = (
+    PrivateRoleArt("Кровосос", "bloodsucker", "bloodsucker"),
+)
+
+ROLE_ART: dict[str, tuple[PrivateRoleArt, ...]] = {
+    "mafia": BANDIT_ART,
+    "civilian": CIVILIAN_ART,
+    "doctor": DOCTOR_ART,
+    "sheriff": SCOUT_ART,
+    "bloodsucker": BLOODSUCKER_ART,
+}
+
+
+def role_art_assignments(
+    game_id: int,
+    role: str,
+    user_ids: Sequence[int],
+) -> dict[int, PrivateRoleArt]:
+    """Assign authored portraits deterministically and without duplicates."""
     ids = sorted(set(user_ids))
-    if len(ids) > len(BANDIT_ART):
-        raise ValueError("Not enough private bandit art for this game")
+    pool = list(ROLE_ART.get(role, ()))
+    if not ids or not pool:
+        return {}
+    if len(ids) > len(pool):
+        raise ValueError(f"Not enough private art for role: {role}")
 
-    seed_bytes = hashlib.sha256(f"bandit-art:{game_id}".encode()).digest()[:8]
+    seed_bytes = hashlib.sha256(f"role-art:{role}:{game_id}".encode()).digest()[:8]
     rng = random.Random(int.from_bytes(seed_bytes, "big"))
-    pool = list(BANDIT_ART)
     rng.shuffle(pool)
     return {user_id: pool[index] for index, user_id in enumerate(ids)}
 
 
+def bandit_art_assignments(game_id: int, user_ids: Sequence[int]) -> dict[int, PrivateRoleArt]:
+    """Backward-compatible helper used by older tests/integrations."""
+    return role_art_assignments(game_id, "mafia", user_ids)
+
+
 def load_private_role_art(art: PrivateRoleArt, *, root: Path = PRIVATE_ART_ROOT) -> bytes:
-    """Load an authored JPEG encoded as a compact base64 repository asset."""
-    path = root / "bandit" / f"{art.asset_key}.b64"
+    """Load one authored JPEG stored as a compact base64 repository asset."""
+    path = root / art.role / f"{art.asset_key}.b64"
     if not path.exists():
-        raise FileNotFoundError(f"Private role art is missing: {art.asset_key}")
+        raise FileNotFoundError(f"Private role art is missing: {art.role}/{art.asset_key}")
     payload = base64.b64decode(path.read_text(encoding="ascii").strip(), validate=True)
     if not payload.startswith(b"\xff\xd8"):
-        raise ValueError(f"Private role art is not a JPEG: {art.asset_key}")
+        raise ValueError(f"Private role art is not a JPEG: {art.role}/{art.asset_key}")
     return payload

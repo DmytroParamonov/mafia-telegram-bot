@@ -13,6 +13,7 @@ from app.config import Settings
 from app.db import init_db, make_engine, make_session_factory
 from app.handlers import router
 from app.playtest_service import PlaytestGameService
+from app.role_cards import prepare_role_card_pack
 from app.stalker_theme import StalkerBot
 from app.test_mode import router as test_router
 from app.zone_handlers import router as zone_router
@@ -28,6 +29,9 @@ async def main() -> None:
     engine = make_engine(settings.database_url)
     session_factory = make_session_factory(engine)
     await init_db(engine)
+
+    card_count = prepare_role_card_pack()
+    logging.info("Ready PDA role-card pack: %s cards", card_count)
 
     bot = StalkerBot(
         token=settings.bot_token,

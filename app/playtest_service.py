@@ -8,15 +8,16 @@ from app.game.rules import build_zone_roles
 from app.keyboards import host_phase_keyboard
 from app.models import Game, utc_ts
 from app.service import GameError
+from app.zone_features import INTRO_SECONDS
 from app.zone_service import ZoneGameService
 
 
 class PlaytestGameService(ZoneGameService):
-    """Playtest-v2 flow tweaks layered over the Zone game service."""
+    """Playtest-v3 flow tweaks layered over the Zone game service."""
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        # The group asked for 3 minutes. Older .env files may still contain 240.
+        # The group settled on 3 minutes for regular daytime discussion.
         self.settings.discussion_seconds = 180
 
     async def _start_zone_game(self, game_id: int, host_user_id: int) -> None:
@@ -37,7 +38,7 @@ class PlaytestGameService(ZoneGameService):
                 game.day_number = 1
                 game.vote_round = 0
                 game.started_at = utc_ts()
-                game.phase_deadline = utc_ts() + self.settings.discussion_seconds
+                game.phase_deadline = utc_ts() + INTRO_SECONDS
                 lobby_message_id = game.lobby_message_id
                 chat_id = game.chat_id
                 await session.commit()
@@ -78,7 +79,7 @@ class PlaytestGameService(ZoneGameService):
             "назвати свій позивний і сказати кілька слів про себе.\n\n"
             f"{roster}\n\n"
             "На цьому етапі <b>немає голосування і нічних дій</b>. Це просто перше знайомство.\n"
-            f"⏱ На знайомство: <b>{self.settings.discussion_seconds} сек.</b>",
+            f"⏱ На знайомство: <b>{INTRO_SECONDS} сек.</b>",
         )
         try:
             await self.bot.send_message(

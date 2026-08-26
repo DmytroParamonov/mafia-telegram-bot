@@ -88,11 +88,13 @@ def bandit_art_assignments(game_id: int, user_ids: Sequence[int]) -> dict[int, P
 
 
 def load_private_role_art(art: PrivateRoleArt, *, root: Path = PRIVATE_ART_ROOT) -> bytes:
-    """Load one authored JPEG stored as a compact base64 repository asset."""
-    path = root / art.role / f"{art.asset_key}.b64"
-    if not path.exists():
+    """Load one authored JPEG from small base64 text chunks in the repository."""
+    asset_dir = root / art.role / art.asset_key
+    parts = sorted(asset_dir.glob("*.part"))
+    if not parts:
         raise FileNotFoundError(f"Private role art is missing: {art.role}/{art.asset_key}")
-    payload = base64.b64decode(path.read_text(encoding="ascii").strip(), validate=True)
+    encoded = "".join(part.read_text(encoding="ascii").strip() for part in parts)
+    payload = base64.b64decode(encoded, validate=True)
     if not payload.startswith(b"\xff\xd8"):
         raise ValueError(f"Private role art is not a JPEG: {art.role}/{art.asset_key}")
     return payload

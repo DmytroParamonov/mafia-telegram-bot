@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import html
+
 from aiogram.exceptions import TelegramBadRequest
 
 from app.game.rules import build_zone_roles
@@ -65,7 +67,9 @@ class PlaytestGameService(ZoneGameService):
 
         all_players = await self._all_players(game_id)
         labels = self._labels(game_id, all_players)
-        roster = "\n".join(f"• {labels[player.user_id]}" for player in players)
+        roster = "\n".join(
+            f"• {html.escape(labels[player.user_id])}" for player in players
+        )
 
         await self.bot.send_message(
             game.chat_id,

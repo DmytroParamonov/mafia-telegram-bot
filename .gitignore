@@ -7,6 +7,10 @@ __pycache__/
 .coverage
 data/*.db
 data/*.db-*
+data/private_role_art/**/*.jpg
+data/private_role_art/**/*.jpeg
+data/private_role_art/**/*.png
+data/private_role_art/**/*.webp
 .idea/
 .vscode/
 .DS_Store

@@ -11,27 +11,23 @@ class LiveZoneEffect:
     title: str
     text: str
     phase: str
-    seconds_delta: int = 0
-    bandit_chat_seconds: int | None = None
+    seconds_delta: int
 
 
 NIGHT_EFFECTS = (
-    LiveZoneEffect(
-        code="radio_jam",
-        title="📻 Радіоперешкоди",
-        text=(
-            "ПДА ловлять сильні перешкоди. Бандитський канал працюватиме лише "
-            "<b>15 секунд</b> цієї ночі."
-        ),
-        phase="night",
-        bandit_chat_seconds=15,
-    ),
     LiveZoneEffect(
         code="long_dark",
         title="🌫 Затяжна ніч",
         text="Туман ліг щільною стіною. Нічний етап отримує <b>+30 секунд</b>.",
         phase="night",
         seconds_delta=30,
+    ),
+    LiveZoneEffect(
+        code="psi_flash",
+        title="🧠 Пси-спалах",
+        text="Короткий пси-імпульс змушує діяти швидше. На ніч <b>-30 секунд</b>.",
+        phase="night",
+        seconds_delta=-30,
     ),
 )
 

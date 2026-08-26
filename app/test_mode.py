@@ -16,6 +16,7 @@ from app.game.rules import (
     build_zone_roles,
     zone_role_counts,
 )
+from app.live_zone import live_zone_effect, phase_seconds
 from app.role_cards import load_ready_role_card, prepare_role_card_pack
 from app.zone_features import (
     CALLSIGNS,
@@ -62,10 +63,13 @@ def test_menu() -> InlineKeyboardMarkup:
             ],
             [InlineKeyboardButton(text="🎲 Симуляція партії", callback_data="t:sim_menu")],
             [
-                InlineKeyboardButton(text="☢️ Подія Зони", callback_data="t:event"),
-                InlineKeyboardButton(text="☠️ Смерть", callback_data="t:death"),
+                InlineKeyboardButton(text="☢️ Жива Зона", callback_data="t:livezone"),
+                InlineKeyboardButton(text="🌫 Атмосферна подія", callback_data="t:event"),
             ],
-            [InlineKeyboardButton(text="💉 Порятунок / тиха ніч", callback_data="t:morning")],
+            [
+                InlineKeyboardButton(text="☠️ Смерть", callback_data="t:death"),
+                InlineKeyboardButton(text="💉 Порятунок / тиха ніч", callback_data="t:morning"),
+            ],
         ]
     )
 
@@ -115,9 +119,9 @@ def simulation_menu() -> InlineKeyboardMarkup:
 def sample_targets() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="№2 «Бугор» — Олександр", callback_data="t:noop")],
-            [InlineKeyboardButton(text="№3 «Туман» — Вадим", callback_data="t:noop")],
-            [InlineKeyboardButton(text="№4 «Ворон» — Лена", callback_data="t:noop")],
+            [InlineKeyboardButton(text="№2 «Саня Кабан» — Олександр", callback_data="t:noop")],
+            [InlineKeyboardButton(text="№3 «Серьога Ворон» — Вадим", callback_data="t:noop")],
+            [InlineKeyboardButton(text="№4 «Коля Тихий» — Лена", callback_data="t:noop")],
         ]
     )
 
@@ -154,8 +158,9 @@ async def test_command(message: Message) -> None:
 
     await message.answer(
         "🧪 <b>ТЕСТОВИЙ ПОЛІГОН ПДА</b>\n\n"
-        "Тут можна одному перевіряти готові картки, етапи, нічні меню, баланс, події "
-        "і симуляцію складу. Тест не записується в статистику й не запускає справжню партію.",
+        "Тут можна одному перевіряти готові картки, етапи, нічні меню, баланс, події, "
+        "режим «Жива Зона» і симуляцію складу. Тест не записується в статистику й не "
+        "запускає справжню партію.",
         reply_markup=test_menu(),
     )
 
@@ -294,6 +299,25 @@ async def test_callback(query: CallbackQuery) -> None:
             f"🎲 <b>Тестова симуляція на {count}</b>\n\n{roster}\n\n"
             "Це лише локальний перегляд: статистика та база гри не змінюються."
         )
+        return
+
+    if action == "livezone":
+        await query.message.answer(
+            "☢️ <b>ЖИВА ЗОНА — окремий режим</b>\n\n"
+            "У класичній ходці події лише створюють атмосферу. У «Живій Зоні» частина "
+            "подій реально змінює тривалість поточного етапу. Ось примусова демонстрація:"
+        )
+        bases = {"night": 90, "discussion": 180, "voting": 90}
+        labels = {"night": "🌘 Ніч", "discussion": "🔥 Сходка", "voting": "🗳 Голосування"}
+        for phase, base in bases.items():
+            effect = live_zone_effect(777, 1, phase, chance=1.0)
+            if effect is None:
+                continue
+            actual = phase_seconds(base, effect)
+            await query.message.answer(
+                f"{labels[phase]}\n{effect.title}\n\n{effect.text}\n"
+                f"⏱ Було: <b>{base}</b> → стало: <b>{actual} сек.</b>"
+            )
         return
 
     if action == "event":

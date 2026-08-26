@@ -46,10 +46,12 @@ class Game(Base):
     phase_deadline: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     winner: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
+    # In Zone mode enable_don is reused as the Bloodsucker toggle so old databases
+    # do not need a schema migration. Legacy games can still contain the Don role.
     enable_don: Mapped[bool] = mapped_column(Boolean, default=True)
     enable_sheriff: Mapped[bool] = mapped_column(Boolean, default=True)
     enable_doctor: Mapped[bool] = mapped_column(Boolean, default=True)
-    reveal_roles: Mapped[bool] = mapped_column(Boolean, default=True)
+    reveal_roles: Mapped[bool] = mapped_column(Boolean, default=False)
 
     created_at: Mapped[int] = mapped_column(Integer, default=utc_ts)
     started_at: Mapped[int | None] = mapped_column(Integer, nullable=True)

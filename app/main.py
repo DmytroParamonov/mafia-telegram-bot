@@ -13,6 +13,7 @@ from app.config import Settings
 from app.db import init_db, make_engine, make_session_factory
 from app.handlers import router
 from app.private_art_service import PrivateArtGameService
+from app.private_role_art import ensure_private_role_art_dirs
 from app.role_cards import prepare_role_card_pack
 from app.stalker_theme import StalkerBot
 from app.test_mode import router as test_router
@@ -30,6 +31,7 @@ async def main() -> None:
     session_factory = make_session_factory(engine)
     await init_db(engine)
 
+    ensure_private_role_art_dirs()
     card_count = prepare_role_card_pack()
     logging.info("Ready PDA role-card pack: %s cards", card_count)
 

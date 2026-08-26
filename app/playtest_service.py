@@ -2,13 +2,22 @@ from __future__ import annotations
 
 import html
 
-from aiogram.exceptions import TelegramBadRequest
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
+from aiogram.types import BufferedInputFile
 
-from app.game.rules import build_zone_roles
+from app.game.rules import (
+    MAFIA_ROLES,
+    ROLE_DESCRIPTIONS,
+    ROLE_FACTIONS,
+    ROLE_TITLES,
+    Role,
+    build_zone_roles,
+)
 from app.keyboards import host_phase_keyboard
 from app.models import Game, utc_ts
+from app.role_cards import load_ready_role_card
 from app.service import GameError
-from app.zone_features import INTRO_SECONDS
+from app.zone_features import INTRO_SECONDS, callsigns_for
 from app.zone_service import ZoneGameService
 
 
@@ -59,6 +68,53 @@ class PlaytestGameService(ZoneGameService):
         await self._send_role_cards(game_id)
         await self._announce_intro(game_id)
 
+    async def _send_role_cards(self, game_id: int) -> None:
+        async with self.session_factory() as session:
+            players = await self._players(session, game_id)
+
+        labels = self._labels(game_id, players)
+        callsigns = callsigns_for(game_id, [player.user_id for player in players])
+        bandits = [player for player in players if player.role in MAFIA_ROLES]
+
+        for player in players:
+            role = player.role or Role.CIVILIAN.value
+            callsign = callsigns[player.user_id]
+            caption = (
+                f"📟 <b>{html.escape(labels[player.user_id])}</b>\n\n"
+                f"Твоя роль: <b>{ROLE_TITLES[role]}</b>\n"
+                f"Фракція: <b>{ROLE_FACTIONS[role]}</b>\n\n"
+                f"{ROLE_DESCRIPTIONS[role]}"
+            )
+            if role in MAFIA_ROLES:
+                allies = [ally for ally in bandits if ally.user_id != player.user_id]
+                if allies:
+                    caption += "\n\n🤝 <b>Твоя братва:</b>\n" + "\n".join(
+                        f"• {html.escape(labels[ally.user_id])}" for ally in allies
+                    )
+                else:
+                    caption += "\n\n🤝 Цієї ходки працюєш один."
+            caption += "\n\n📵 Не світи ПДА іншим."
+
+            try:
+                image = load_ready_role_card(role, callsign)
+                await self.bot.send_photo(
+                    player.user_id,
+                    BufferedInputFile(
+                        image,
+                        filename=f"pda_{role}_{callsign}.jpg",
+                    ),
+                    caption=caption,
+                )
+            except (OSError, ValueError):
+                # The ready pack is rebuilt automatically on the next request. If the
+                # filesystem itself is unavailable, the complete text card still works.
+                try:
+                    await self.bot.send_message(player.user_id, caption)
+                except TelegramForbiddenError:
+                    pass
+            except TelegramForbiddenError:
+                pass
+
     async def _announce_intro(self, game_id: int) -> None:
         async with self.session_factory() as session:
             game = await session.get(Game, game_id)
@@ -89,7 +145,7 @@ class PlaytestGameService(ZoneGameService):
                 "Якщо всі вже познайомилися — завершуй етап раніше.",
                 reply_markup=host_phase_keyboard(game),
             )
-        except Exception:
+        except TelegramForbiddenError:
             pass
 
     async def _begin_first_night(self, game_id: int) -> None:

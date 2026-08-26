@@ -11,14 +11,22 @@ def yn(value: bool) -> str:
     return "✅" if value else "❌"
 
 
+def _rules_url(join_url: str) -> str:
+    base = join_url.split("?start=", 1)[0]
+    return f"{base}?start=rules"
+
+
 def lobby_keyboard(game: Game, join_url: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(text="🔥 Сісти до багаття", url=join_url),
-                InlineKeyboardButton(text="🚶 Відійти", callback_data=f"l:leave:{game.id}"),
+                InlineKeyboardButton(text="📖 Правила", url=_rules_url(join_url)),
             ],
-            [InlineKeyboardButton(text="🚪 Вирушаємо", callback_data=f"l:start:{game.id}")],
+            [
+                InlineKeyboardButton(text="🚶 Відійти", callback_data=f"l:leave:{game.id}"),
+                InlineKeyboardButton(text="🚪 Вирушаємо", callback_data=f"l:start:{game.id}"),
+            ],
             [
                 InlineKeyboardButton(
                     text=f"☢️ Жива Зона {yn(game.live_zone)}",
@@ -36,6 +44,45 @@ def lobby_keyboard(game: Game, join_url: str) -> InlineKeyboardMarkup:
                 ),
             ],
             [InlineKeyboardButton(text="❌ Розпустити групу", callback_data=f"l:cancel:{game.id}")],
+        ]
+    )
+
+
+def help_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="🎮 Як грати", callback_data="help:game"),
+                InlineKeyboardButton(text="🎭 Ролі", callback_data="help:roles"),
+            ],
+            [
+                InlineKeyboardButton(text="🏆 Перемога", callback_data="help:win"),
+                InlineKeyboardButton(text="🌘 Ніч", callback_data="help:night"),
+            ],
+            [
+                InlineKeyboardButton(text="🗳 Голосування", callback_data="help:vote"),
+                InlineKeyboardButton(text="☠️ Після смерті", callback_data="help:dead"),
+            ],
+            [
+                InlineKeyboardButton(text="☢️ Режими Зони", callback_data="help:zone"),
+                InlineKeyboardButton(text="⏱ Таймери", callback_data="help:timers"),
+            ],
+            [InlineKeyboardButton(text="🤖 Команди", callback_data="help:commands")],
+        ]
+    )
+
+
+def help_back_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="↩️ До довідника", callback_data="help:menu")]]
+    )
+
+
+def role_card_help_keyboard(game_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="❓ Що робить моя роль?", callback_data=f"pda:role:{game_id}")],
+            [InlineKeyboardButton(text="📖 Правила гри", callback_data="help:menu")],
         ]
     )
 

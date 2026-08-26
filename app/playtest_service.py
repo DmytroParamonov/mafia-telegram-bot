@@ -13,7 +13,7 @@ from app.game.rules import (
     Role,
     build_zone_roles,
 )
-from app.keyboards import host_phase_keyboard
+from app.keyboards import host_phase_keyboard, role_card_help_keyboard
 from app.live_zone import live_zone_effect, phase_seconds
 from app.models import Game, utc_ts
 from app.role_cards import load_ready_role_card
@@ -139,6 +139,7 @@ class PlaytestGameService(ZoneGameService):
                 else:
                     caption += "\n\n🤝 Цієї ходки працюєш один."
             caption += "\n\n📵 Не світи ПДА іншим."
+            markup = role_card_help_keyboard(game_id)
 
             try:
                 image = load_ready_role_card(role, callsign)
@@ -149,11 +150,12 @@ class PlaytestGameService(ZoneGameService):
                         filename=f"pda_{role}_{callsign}.jpg",
                     ),
                     caption=caption,
+                    reply_markup=markup,
                 )
             except (OSError, ValueError):
                 # If the card pack cannot be read, the complete text card still works.
                 try:
-                    await self.bot.send_message(player.user_id, caption)
+                    await self.bot.send_message(player.user_id, caption, reply_markup=markup)
                 except TelegramForbiddenError:
                     pass
             except TelegramForbiddenError:

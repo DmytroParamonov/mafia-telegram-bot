@@ -56,9 +56,11 @@ async def main() -> None:
     )
 
     dispatcher = Dispatcher()
+    # Specific commands first, generic private PDA text last. Otherwise a broad
+    # private-text handler can consume slash commands before /help, /stats, etc.
     dispatcher.include_router(test_router)
-    dispatcher.include_router(zone_router)
     dispatcher.include_router(router)
+    dispatcher.include_router(zone_router)
     scheduler_task = asyncio.create_task(game_service.phase_loop(), name="stalker-phase-scheduler")
 
     try:

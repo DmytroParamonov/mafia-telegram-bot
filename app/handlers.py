@@ -5,8 +5,11 @@ from aiogram.enums import ChatMemberStatus, ChatType
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from sqlalchemy import select
 
-from app.keyboards import confirm_end_keyboard
+from app.help_content import HELP_HOME, help_section_text, role_help_text
+from app.keyboards import confirm_end_keyboard, help_back_keyboard, help_keyboard
+from app.models import GamePlayer
 from app.service import GameError
 from app.zone_service import ZoneGameService
 
@@ -16,6 +19,10 @@ router = Router()
 async def _reply_error(message: Message | None, text: str) -> None:
     if message is not None:
         await message.answer(f"⚠️ {text}")
+
+
+async def _send_help_home(message: Message) -> None:
+    await message.answer(HELP_HOME, reply_markup=help_keyboard())
 
 
 @router.message(CommandStart())
@@ -29,6 +36,10 @@ async def start_command(
     await game_service.ensure_user(message.from_user)
 
     payload = command.args or ""
+    if payload == "rules":
+        await _send_help_home(message)
+        return
+
     if payload.startswith("join_"):
         try:
             game_id = int(payload.removeprefix("join_"))
@@ -49,7 +60,9 @@ async def start_command(
     await message.answer(
         "☢️ <b>STALKER MAFIA</b>\n\n"
         "Це твій особистий ПДА. Тут приходять роль, нічні дії, таємне голосування й службові повідомлення.\n\n"
-        "Щоб зібрати ходку, адміністратор групи пише /stalker."
+        "Щоб зібрати ходку, адміністратор групи пише /stalker.\n"
+        "Правила та опис ролей завжди доступні через /help.",
+        reply_markup=help_keyboard(),
     )
 
 
@@ -74,7 +87,13 @@ async def stalker_command(message: Message, game_service: ZoneGameService) -> No
                                 text="🔥 Сісти до багаття",
                                 url=game_service.join_url(game_service.bot_username, existing.id),
                             )
-                        ]
+                        ],
+                        [
+                            InlineKeyboardButton(
+                                text="📖 Правила",
+                                url=f"https://t.me/{game_service.bot_username}?start=rules",
+                            )
+                        ],
                     ]
                 ),
             )
@@ -103,17 +122,56 @@ async def check_command(message: Message, game_service: ZoneGameService) -> None
 
 @router.message(Command("help"))
 async def help_command(message: Message) -> None:
-    await message.answer(
-        "☢️ <b>Як проходить ходка</b>\n\n"
-        "1. Адміністратор групи запускає /stalker.\n"
-        "2. Учасники тиснуть «🔥 Сісти до багаття» й відкривають особистий ПДА.\n"
-        "3. Після «🚪 Вирушаємо» всі підтверджують готовність.\n"
-        "4. Бот автоматично роздає збалансовані ролі для 5–10 гравців.\n"
-        "5. Нічні дії та голоси надходять у приватний ПДА.\n"
-        "6. Вибулий після денного голосування має 30 секунд на власне останнє слово.\n"
-        "7. Ролі вибулих за замовчуванням приховані до фіналу.\n\n"
-        "Команди: /stats — статистика, /check — перевірка адмін-прав бота."
-    )
+    await _send_help_home(message)
+
+
+@router.callback_query(F.data.startswith("help:"))
+async def help_callback(query: CallbackQuery) -> None:
+    if not query.data or query.message is None:
+        await query.answer()
+        return
+
+    section = query.data.split(":", 1)[1]
+    await query.answer()
+    if section == "menu":
+        await query.message.answer(HELP_HOME, reply_markup=help_keyboard())
+        return
+
+    text = help_section_text(section)
+    if text is None:
+        await query.message.answer("📟 Цей розділ довідника не знайдено.")
+        return
+    await query.message.answer(text, reply_markup=help_back_keyboard())
+
+
+@router.callback_query(F.data.startswith("pda:role:"))
+async def my_role_help_callback(query: CallbackQuery, game_service: ZoneGameService) -> None:
+    if query.from_user is None or not query.data or query.message is None:
+        return
+    try:
+        game_id = int(query.data.rsplit(":", 1)[1])
+    except ValueError:
+        await query.answer("Некоректний ПДА.", show_alert=True)
+        return
+
+    async with game_service.session_factory() as session:
+        player = await session.scalar(
+            select(GamePlayer).where(
+                GamePlayer.game_id == game_id,
+                GamePlayer.user_id == query.from_user.id,
+            )
+        )
+
+    if player is None:
+        await query.answer("Тебе немає в цій ходці.", show_alert=True)
+        return
+    text = role_help_text(player.role)
+    if text is None:
+        await query.answer("Роль ще не призначена.", show_alert=True)
+        return
+
+    await query.answer()
+    await query.message.answer(text, reply_markup=help_back_keyboard())
 
 
 @router.message(Command("stats"))

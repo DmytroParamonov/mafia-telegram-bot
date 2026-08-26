@@ -5,41 +5,33 @@ from collections.abc import Sequence
 
 ZONE_EVENT_CHANCE = 0.35
 READY_SECONDS = 60
+INTRO_SECONDS = 60
 LAST_WORD_SECONDS = 30
 BANDIT_CHAT_SECONDS = 30
 ZONE_MAX_PLAYERS = 10
 
+# Exactly 20 callsigns are used by the ready PDA card pack.
 CALLSIGNS = (
     "Шрам",
-    "Борода",
-    "Хмурий",
-    "Кабан",
-    "Привид",
+    "Бугор",
     "Ворон",
-    "Сірий",
-    "Моль",
-    "Бункер",
-    "Фантом",
-    "Кремінь",
-    "Грім",
-    "Хорс",
-    "Рись",
-    "Болотник",
     "Туман",
-    "Клык",
-    "Сич",
-    "Гайка",
-    "Бродяга",
-    "Барс",
-    "Шукач",
-    "Дим",
-    "Крот",
-    "Сектор",
-    "Вітер",
-    "Клин",
-    "Стриж",
+    "Грім",
+    "Борода",
+    "Сірий",
+    "Кріт",
+    "Кабан",
+    "Хмурий",
+    "Лис",
+    "Вовк",
+    "Ржавий",
+    "Фантом",
     "Яструб",
-    "Пілігрим",
+    "Примара",
+    "Койот",
+    "Батон",
+    "Гак",
+    "Корсар",
 )
 
 NIGHT_ZONE_EVENTS = (
@@ -82,12 +74,19 @@ QUIET_NIGHT_TEMPLATES = (
 
 
 def callsigns_for(game_id: int, user_ids: Sequence[int]) -> dict[int, str]:
+    if len(user_ids) > len(CALLSIGNS):
+        raise ValueError("Not enough callsigns for this game")
     callsigns = list(CALLSIGNS)
     random.Random(game_id * 7919 + len(user_ids)).shuffle(callsigns)
     return {user_id: callsigns[index] for index, user_id in enumerate(user_ids)}
 
 
-def choose_zone_event(phase: str, *, rng: random.Random | None = None, chance: float = ZONE_EVENT_CHANCE) -> str | None:
+def choose_zone_event(
+    phase: str,
+    *,
+    rng: random.Random | None = None,
+    chance: float = ZONE_EVENT_CHANCE,
+) -> str | None:
     source = rng or random.SystemRandom()
     if source.random() >= chance:
         return None
@@ -95,12 +94,22 @@ def choose_zone_event(phase: str, *, rng: random.Random | None = None, chance: f
     return source.choice(events)
 
 
-def night_death_line(name: str, role_suffix: str = "", *, rng: random.Random | None = None) -> str:
+def night_death_line(
+    name: str,
+    role_suffix: str = "",
+    *,
+    rng: random.Random | None = None,
+) -> str:
     source = rng or random.SystemRandom()
     return source.choice(NIGHT_DEATH_LINES).format(name=name, role_suffix=role_suffix)
 
 
-def night_death_text(name: str, role_suffix: str = "", *, rng: random.Random | None = None) -> str:
+def night_death_text(
+    name: str,
+    role_suffix: str = "",
+    *,
+    rng: random.Random | None = None,
+) -> str:
     return "🌅 <b>Світанок у Зоні</b>\n\n" + night_death_line(name, role_suffix, rng=rng)
 
 

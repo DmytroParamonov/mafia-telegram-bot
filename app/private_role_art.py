@@ -3,9 +3,9 @@ from __future__ import annotations
 import base64
 import hashlib
 import random
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from collections.abc import Sequence
 
 
 PRIVATE_ART_ROOT = Path("assets/private_role_art")
@@ -42,17 +42,12 @@ def bandit_art_assignments(game_id: int, user_ids: Sequence[int]) -> dict[int, P
     return {user_id: pool[index] for index, user_id in enumerate(ids)}
 
 
-def _asset_parts(art: PrivateRoleArt, *, root: Path = PRIVATE_ART_ROOT) -> list[Path]:
-    return sorted((root / "bandit").glob(f"{art.asset_key}.*.part"))
-
-
 def load_private_role_art(art: PrivateRoleArt, *, root: Path = PRIVATE_ART_ROOT) -> bytes:
-    """Load an authored JPEG stored as small base64 text chunks in the repository."""
-    parts = _asset_parts(art, root=root)
-    if not parts:
+    """Load an authored JPEG encoded as a compact base64 repository asset."""
+    path = root / "bandit" / f"{art.asset_key}.b64"
+    if not path.exists():
         raise FileNotFoundError(f"Private role art is missing: {art.asset_key}")
-    encoded = "".join(part.read_text(encoding="ascii").strip() for part in parts)
-    payload = base64.b64decode(encoded, validate=True)
+    payload = base64.b64decode(path.read_text(encoding="ascii").strip(), validate=True)
     if not payload.startswith(b"\xff\xd8"):
         raise ValueError(f"Private role art is not a JPEG: {art.asset_key}")
     return payload

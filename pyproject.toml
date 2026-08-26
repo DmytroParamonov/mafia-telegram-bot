@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mafia-telegram-bot"
-version = "0.1.0"
-description = "Telegram Mafia game bot with an automated host"
+version = "0.2.0"
+description = "Telegram STALKER Mafia game bot with an automated host"
 requires-python = ">=3.12"
 dependencies = [
   "aiogram>=3.20,<4",
@@ -13,6 +13,7 @@ dependencies = [
   "greenlet>=3.1,<4",
   "aiosqlite>=0.20,<1",
   "pydantic-settings>=2.7,<3",
+  "Pillow>=11,<13",
 ]
 
 [project.optional-dependencies]

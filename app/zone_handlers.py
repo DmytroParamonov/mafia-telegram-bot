@@ -39,10 +39,15 @@ async def ready_callback(query: CallbackQuery, game_service: ZoneGameService) ->
             await query.message.answer("📟 ПДА: статус «готовий» передано старшому групи.")
 
 
-@router.message(F.chat.type == ChatType.PRIVATE, F.text)
+@router.message(F.chat.type == ChatType.PRIVATE, F.text, ~F.text.startswith("/"))
 async def private_pda_text(message: Message, game_service: ZoneGameService) -> None:
+    """Relay ordinary PDA text without swallowing slash commands.
+
+    Command messages must continue to the main handlers router (/help, /stats,
+    /check, /stalker, /start, etc.). Previously this handler matched every text
+    message first and returned for commands, which made aiogram consider the
+    update handled before command handlers could see it.
+    """
     if message.from_user is None or not message.text:
-        return
-    if message.text.startswith("/"):
         return
     await game_service.handle_private_text(message.from_user.id, message.text)

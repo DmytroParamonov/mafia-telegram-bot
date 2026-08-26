@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import html
+from collections import defaultdict
 
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.types import BufferedInputFile
@@ -16,6 +17,7 @@ from app.game.rules import (
 from app.keyboards import host_phase_keyboard, role_card_help_keyboard
 from app.live_zone import live_zone_effect, phase_seconds
 from app.models import Game, utc_ts
+from app.private_role_art import load_private_role_art, role_art_assignments
 from app.role_cards import load_ready_role_card
 from app.service import GameError
 from app.zone_features import INTRO_SECONDS, callsigns_for
@@ -121,6 +123,19 @@ class PlaytestGameService(ZoneGameService):
         callsigns = callsigns_for(game_id, [player.user_id for player in players])
         bandits = [player for player in players if player.role in MAFIA_ROLES]
 
+        users_by_role: dict[str, list[int]] = defaultdict(list)
+        for player in players:
+            users_by_role[player.role or Role.CIVILIAN.value].append(player.user_id)
+
+        authored_art = {}
+        for role, user_ids in users_by_role.items():
+            try:
+                authored_art.update(role_art_assignments(game_id, role, user_ids))
+            except ValueError:
+                # Future custom balances may contain more copies of a role than
+                # the authored pack. Those players fall back to generated cards.
+                pass
+
         for player in players:
             role = player.role or Role.CIVILIAN.value
             callsign = callsigns[player.user_id]
@@ -141,19 +156,23 @@ class PlaytestGameService(ZoneGameService):
             caption += "\n\n📵 Не світи ПДА іншим."
             markup = role_card_help_keyboard(game_id)
 
+            art = authored_art.get(player.user_id)
             try:
-                image = load_ready_role_card(role, callsign)
+                if art is not None:
+                    image = load_private_role_art(art)
+                    filename = f"pda_{role}_{art.asset_key}.jpg"
+                else:
+                    image = load_ready_role_card(role, callsign)
+                    filename = f"pda_{role}_{callsign}.jpg"
                 await self.bot.send_photo(
                     player.user_id,
-                    BufferedInputFile(
-                        image,
-                        filename=f"pda_{role}_{callsign}.jpg",
-                    ),
+                    BufferedInputFile(image, filename=filename),
                     caption=caption,
                     reply_markup=markup,
                 )
             except (OSError, ValueError):
-                # If the card pack cannot be read, the complete text card still works.
+                # If authored/generated art cannot be read, the complete text
+                # card still keeps the game playable.
                 try:
                     await self.bot.send_message(player.user_id, caption, reply_markup=markup)
                 except TelegramForbiddenError:

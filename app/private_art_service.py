@@ -8,7 +8,7 @@ from aiogram.types import BufferedInputFile
 from app.game.rules import MAFIA_ROLES, ROLE_DESCRIPTIONS, ROLE_FACTIONS, ROLE_TITLES, Role
 from app.keyboards import role_card_help_keyboard
 from app.playtest_service import PlaytestGameService
-from app.private_role_art import bandit_art_assignments, load_private_role_art
+from app.private_role_art import ROLE_ART, load_private_role_art, role_art_assignments
 from app.role_cards import load_ready_role_card
 from app.zone_features import callsigns_for
 
@@ -23,7 +23,18 @@ class PrivateArtGameService(PlaytestGameService):
         labels = self._labels(game_id, players)
         callsigns = callsigns_for(game_id, [player.user_id for player in players])
         bandits = [player for player in players if player.role in MAFIA_ROLES]
-        bandit_art = bandit_art_assignments(game_id, [player.user_id for player in bandits])
+
+        authored_art = {}
+        for art_role in ROLE_ART:
+            role_user_ids = [
+                player.user_id
+                for player in players
+                if (
+                    Role.MAFIA.value if player.role in MAFIA_ROLES else player.role
+                )
+                == art_role
+            ]
+            authored_art.update(role_art_assignments(game_id, art_role, role_user_ids))
 
         for player in players:
             role = player.role or Role.CIVILIAN.value
@@ -46,14 +57,14 @@ class PrivateArtGameService(PlaytestGameService):
             markup = role_card_help_keyboard(game_id)
 
             try:
-                if role in MAFIA_ROLES:
-                    # The authored bandit portrait is sent only to this Telegram user.
-                    # It never appears in the group lobby, public roster or death text.
+                art = authored_art.get(player.user_id)
+                if art is not None:
                     try:
-                        image = load_private_role_art(bandit_art[player.user_id])
+                        image = load_private_role_art(art)
+                        filename = f"pda_{art.role}_{art.asset_key}.jpg"
                     except (OSError, ValueError):
                         image = load_ready_role_card(role, callsign)
-                    filename = "pda_bandit.jpg"
+                        filename = f"pda_{role}_{callsign}.jpg"
                 else:
                     image = load_ready_role_card(role, callsign)
                     filename = f"pda_{role}_{callsign}.jpg"

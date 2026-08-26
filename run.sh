@@ -19,7 +19,7 @@ DATABASE_URL=sqlite+aiosqlite:///./data/mafia.db
 MIN_PLAYERS=5
 MAX_PLAYERS=10
 NIGHT_SECONDS=90
-DISCUSSION_SECONDS=240
+DISCUSSION_SECONDS=180
 VOTING_SECONDS=90
 RUNOFF_SECONDS=60
 PHASE_POLL_SECONDS=2
@@ -35,7 +35,7 @@ if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; 
   echo "🐳 Docker знайдено — запускаю бота у фоні..."
   docker compose up -d --build
   echo
-  echo "✅ Бот запущено."
+  echo "✅ Бота запущено."
   echo "Логи: docker compose logs -f mafia-bot"
   echo "Зупинити: docker compose down"
   exit 0

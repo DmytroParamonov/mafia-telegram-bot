@@ -1,3 +1,8 @@
+import pytest
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import create_async_engine
+
+from app.db import init_db
 from app.keyboards import lobby_keyboard
 from app.live_zone import live_zone_effect, phase_seconds
 from app.models import Game
@@ -35,3 +40,19 @@ def test_lobby_has_separate_live_zone_toggle() -> None:
     live_button = next(button for button in buttons if button.callback_data == "l:toggle_live_zone:5")
     assert "Жива Зона" in live_button.text
     assert "✅" in live_button.text
+
+
+@pytest.mark.asyncio
+async def test_existing_database_gets_live_zone_column() -> None:
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.execute(text("CREATE TABLE games (id INTEGER PRIMARY KEY)"))
+
+    await init_db(engine)
+
+    async with engine.begin() as conn:
+        rows = await conn.execute(text("PRAGMA table_info(games)"))
+        columns = {row[1] for row in rows}
+    await engine.dispose()
+
+    assert "live_zone" in columns

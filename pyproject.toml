@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mafia-telegram-bot"
 version = "0.2.0"
-description = "Telegram STALKER Mafia game bot with an automated host"
+description = "STALKER-inspired Telegram Mafia game with an automated host, PDA roles, Zone events and solo playtest tools"
 requires-python = ">=3.12"
 dependencies = [
   "aiogram>=3.20,<4",

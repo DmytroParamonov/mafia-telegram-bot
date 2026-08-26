@@ -11,9 +11,10 @@ class Settings(BaseSettings):
         alias="DATABASE_URL",
     )
     min_players: int = Field(default=5, alias="MIN_PLAYERS", ge=4, le=20)
-    max_players: int = Field(default=20, alias="MAX_PLAYERS", ge=5, le=30)
-    night_seconds: int = Field(default=60, alias="NIGHT_SECONDS", ge=15, le=600)
-    discussion_seconds: int = Field(default=180, alias="DISCUSSION_SECONDS", ge=30, le=1800)
-    voting_seconds: int = Field(default=60, alias="VOTING_SECONDS", ge=15, le=600)
-    runoff_seconds: int = Field(default=45, alias="RUNOFF_SECONDS", ge=15, le=600)
+    # Old local .env files may still say 20. ZoneGameService safely caps this at 10.
+    max_players: int = Field(default=10, alias="MAX_PLAYERS", ge=5, le=30)
+    night_seconds: int = Field(default=90, alias="NIGHT_SECONDS", ge=15, le=600)
+    discussion_seconds: int = Field(default=240, alias="DISCUSSION_SECONDS", ge=30, le=1800)
+    voting_seconds: int = Field(default=90, alias="VOTING_SECONDS", ge=15, le=600)
+    runoff_seconds: int = Field(default=60, alias="RUNOFF_SECONDS", ge=15, le=600)
     phase_poll_seconds: int = Field(default=2, alias="PHASE_POLL_SECONDS", ge=1, le=30)

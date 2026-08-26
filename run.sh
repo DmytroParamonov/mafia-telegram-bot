@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 if [ ! -f .env ]; then
-  echo "☢️ Перший запуск STALKER Bot"
+  echo "☢️ Перший запуск STALKER MAFIA"
   printf "Встав токен від BotFather: "
   IFS= read -r BOT_TOKEN
 
@@ -17,11 +17,11 @@ if [ ! -f .env ]; then
 BOT_TOKEN=$BOT_TOKEN
 DATABASE_URL=sqlite+aiosqlite:///./data/mafia.db
 MIN_PLAYERS=5
-MAX_PLAYERS=20
-NIGHT_SECONDS=60
-DISCUSSION_SECONDS=180
-VOTING_SECONDS=60
-RUNOFF_SECONDS=45
+MAX_PLAYERS=10
+NIGHT_SECONDS=90
+DISCUSSION_SECONDS=240
+VOTING_SECONDS=90
+RUNOFF_SECONDS=60
 PHASE_POLL_SECONDS=2
 EOF
 
@@ -35,7 +35,7 @@ if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; 
   echo "🐳 Docker знайдено — запускаю бота у фоні..."
   docker compose up -d --build
   echo
-  echo "✅ Бота запущено."
+  echo "✅ Бот запущено."
   echo "Логи: docker compose logs -f mafia-bot"
   echo "Зупинити: docker compose down"
   exit 0
@@ -73,5 +73,5 @@ python -m pip install -e .
 python -c 'import greenlet' >/dev/null 2>&1 || python -m pip install 'greenlet>=3.1,<4'
 
 echo
-echo "✅ Бота запущено. Для зупинки натисни Ctrl+C."
+echo "✅ Бот запускається. Для зупинки натисни Ctrl+C."
 exec python -m app.main

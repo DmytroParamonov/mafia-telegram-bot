@@ -44,6 +44,7 @@ async def main() -> None:
         [
             BotCommand(command="stalker", description="☢️ Зібрати ходку в Зону"),
             BotCommand(command="stats", description="📟 Моя статистика"),
+            BotCommand(command="check", description="🛡 Перевірити права бота"),
             BotCommand(command="help", description="🔥 Правила ходки"),
         ]
     )

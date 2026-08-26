@@ -5,6 +5,42 @@ from collections.abc import Sequence
 
 ZONE_EVENT_CHANCE = 0.35
 READY_SECONDS = 60
+LAST_WORD_SECONDS = 30
+BANDIT_CHAT_SECONDS = 30
+ZONE_MAX_PLAYERS = 10
+
+CALLSIGNS = (
+    "Шрам",
+    "Борода",
+    "Хмурий",
+    "Кабан",
+    "Привид",
+    "Ворон",
+    "Сірий",
+    "Моль",
+    "Бункер",
+    "Фантом",
+    "Кремінь",
+    "Грім",
+    "Хорс",
+    "Рись",
+    "Болотник",
+    "Туман",
+    "Клык",
+    "Сич",
+    "Гайка",
+    "Бродяга",
+    "Барс",
+    "Шукач",
+    "Дим",
+    "Крот",
+    "Сектор",
+    "Вітер",
+    "Клин",
+    "Стриж",
+    "Яструб",
+    "Пілігрим",
+)
 
 NIGHT_ZONE_EVENTS = (
     "☢️ <b>ПДА: підвищений радіаційний фон</b>\n\nДесь неподалік затріщав дозиметр. Хмара пройшла повз табір — можна рухатися далі.",
@@ -24,18 +60,18 @@ DAY_ZONE_EVENTS = (
     "🔥 <b>Багаття раптом згасло</b>\n\nПорив вітру розніс іскри по бетону. Вогонь розпалили знову, а розмова стала ще нервовішою.",
 )
 
-NIGHT_DEATH_TEMPLATES = (
-    "🌅 <b>Світанок у Зоні</b>\n\n☠️ До багаття не повернувся <b>{name}</b>. Його ПДА більше не відповідає.{role_suffix}",
-    "🌅 <b>Світанок у Зоні</b>\n\n🔫 Уночі біля старих бетонних плит чули коротку чергу. На світанку стало ясно: <b>{name}</b> не вижив.{role_suffix}",
-    "🌅 <b>Світанок у Зоні</b>\n\n🌫 У ранковому тумані знайшли розбитий ПДА <b>{name}</b>. Самого сталкера вже не врятувати.{role_suffix}",
-    "🌅 <b>Світанок у Зоні</b>\n\n🎒 Біля периметра залишився тільки рюкзак <b>{name}</b>. Цієї ночі Зона забрала ще одного.{role_suffix}",
-    "🌅 <b>Світанок у Зоні</b>\n\n☠️ На ранковій перекличці не відповів <b>{name}</b>. Бандити вночі зробили свою справу.{role_suffix}",
+NIGHT_DEATH_LINES = (
+    "☠️ До багаття не повернувся <b>{name}</b>. Його ПДА більше не відповідає.{role_suffix}",
+    "🔫 Уночі біля старих бетонних плит чули коротку чергу. <b>{name}</b> не вижив.{role_suffix}",
+    "🌫 У ранковому тумані знайшли розбитий ПДА <b>{name}</b>. Самого сталкера вже не врятувати.{role_suffix}",
+    "🎒 Біля периметра залишився тільки рюкзак <b>{name}</b>. Зона забрала ще одного.{role_suffix}",
+    "☠️ На ранковій перекличці не відповів <b>{name}</b>. Ця ніч стала для нього останньою.{role_suffix}",
 )
 
 SAVED_TEMPLATES = (
     "🌅 <b>Світанок у Зоні</b>\n\n💉 Уночі когось намагалися прибрати, але польовий медик встиг стабілізувати пораненого. Цього разу всі дожили до ранку.",
     "🌅 <b>Світанок у Зоні</b>\n\n🩹 На землі є сліди крові, але біля багаття всі живі. Медик цієї ночі відпрацював бездоганно.",
-    "🌅 <b>Світанок у Зоні</b>\n\n💉 Постріли були, жертва теж була — але медик витягнув її з того світу. Бандитам не пощастило.",
+    "🌅 <b>Світанок у Зоні</b>\n\n💉 Постріли були, жертва теж була — але медик витягнув її з того світу. Цього разу ніхто не загинув.",
 )
 
 QUIET_NIGHT_TEMPLATES = (
@@ -43,6 +79,12 @@ QUIET_NIGHT_TEMPLATES = (
     "🌅 <b>Світанок у Зоні</b>\n\nЛише вітер ганяв пил між плитами. Цієї ночі ніхто не загинув.",
     "🌅 <b>Світанок у Зоні</b>\n\nПДА мовчали до самого ранку. Усі, хто засинав біля багаття, прокинулися живими.",
 )
+
+
+def callsigns_for(game_id: int, user_ids: Sequence[int]) -> dict[int, str]:
+    callsigns = list(CALLSIGNS)
+    random.Random(game_id * 7919 + len(user_ids)).shuffle(callsigns)
+    return {user_id: callsigns[index] for index, user_id in enumerate(user_ids)}
 
 
 def choose_zone_event(phase: str, *, rng: random.Random | None = None, chance: float = ZONE_EVENT_CHANCE) -> str | None:
@@ -53,9 +95,13 @@ def choose_zone_event(phase: str, *, rng: random.Random | None = None, chance: f
     return source.choice(events)
 
 
-def night_death_text(name: str, role_suffix: str = "", *, rng: random.Random | None = None) -> str:
+def night_death_line(name: str, role_suffix: str = "", *, rng: random.Random | None = None) -> str:
     source = rng or random.SystemRandom()
-    return source.choice(NIGHT_DEATH_TEMPLATES).format(name=name, role_suffix=role_suffix)
+    return source.choice(NIGHT_DEATH_LINES).format(name=name, role_suffix=role_suffix)
+
+
+def night_death_text(name: str, role_suffix: str = "", *, rng: random.Random | None = None) -> str:
+    return "🌅 <b>Світанок у Зоні</b>\n\n" + night_death_line(name, role_suffix, rng=rng)
 
 
 def saved_text(*, rng: random.Random | None = None) -> str:

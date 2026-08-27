@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 if [ ! -f .env ]; then
-  echo "☢️ Перший запуск STALKER MAFIA"
+  echo "☢️ Перший запуск «Мафії в Зоні»"
   printf "Встав токен від BotFather: "
   IFS= read -r BOT_TOKEN
 
@@ -27,6 +27,35 @@ EOF
 
   chmod 600 .env 2>/dev/null || true
   echo "✅ .env створено."
+fi
+
+# A fresh ZIP intentionally has no .env. Configure the economy owner here so
+# nobody has to reveal hidden Finder files or edit .env by hand. A value passed
+# as ADMIN_USER_IDS=... ./run.sh is also persisted automatically.
+CURRENT_ADMIN_IDS="$(grep '^ADMIN_USER_IDS=' .env 2>/dev/null | tail -n 1 | cut -d= -f2- || true)"
+if [ -z "$CURRENT_ADMIN_IDS" ]; then
+  ADMIN_IDS="${ADMIN_USER_IDS:-}"
+  if [ -z "$ADMIN_IDS" ]; then
+    echo
+    echo "🛡 Налаштування адмін-панелі економіки"
+    printf "Встав свій Telegram ID (Enter — пропустити): "
+    IFS= read -r ADMIN_IDS
+  fi
+
+  if [ -n "$ADMIN_IDS" ]; then
+    if [[ "$ADMIN_IDS" =~ ^[0-9]+(,[0-9]+)*$ ]]; then
+      grep -v '^ADMIN_USER_IDS=' .env > .env.tmp || true
+      printf 'ADMIN_USER_IDS=%s\n' "$ADMIN_IDS" >> .env.tmp
+      mv .env.tmp .env
+      chmod 600 .env 2>/dev/null || true
+      echo "✅ Адмін ID збережено в .env: $ADMIN_IDS"
+    else
+      echo "⚠️ Telegram ID має складатися з цифр. Адмінку поки пропущено."
+      echo "   Просто запусти ./run.sh ще раз — скрипт запитає ID знову."
+    fi
+  else
+    echo "ℹ️ Адмінку пропущено. ./run.sh запитає Telegram ID при наступному запуску."
+  fi
 fi
 
 mkdir -p data

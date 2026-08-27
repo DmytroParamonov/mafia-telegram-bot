@@ -16,6 +16,7 @@ from app.game.rules import (
     build_zone_roles,
     zone_role_counts,
 )
+from app.legends import LEGENDS, random_legend
 from app.live_zone import live_zone_effect, phase_seconds
 from app.private_role_art import PRIVATE_ART_ROOT, ROLE_ART, load_private_role_art, private_role_art_path
 from app.zone_features import (
@@ -41,7 +42,7 @@ ROLE_SHORT = {
     Role.CIVILIAN.value: "☢️ Сталкер",
     Role.MAFIA.value: "🔪 Бандит",
     Role.SHERIFF.value: "🔎 Розвідник",
-    Role.DOCTOR.value: "💉 Медик",
+    Role.DOCTOR.value: "💉 Лікар",
     Role.BLOODSUCKER.value: "🧛 Кровосос",
 }
 
@@ -61,7 +62,10 @@ def test_menu() -> InlineKeyboardMarkup:
                 InlineKeyboardButton(text="🎒 Готовність", callback_data="t:ready"),
                 InlineKeyboardButton(text="⚖️ Баланс 5–10", callback_data="t:balance"),
             ],
-            [InlineKeyboardButton(text="🎲 Симуляція партії", callback_data="t:sim_menu")],
+            [
+                InlineKeyboardButton(text="🎲 Симуляція партії", callback_data="t:sim_menu"),
+                InlineKeyboardButton(text="📖 Випадкова легенда", callback_data="t:legend"),
+            ],
             [
                 InlineKeyboardButton(text="☢️ Жива Зона", callback_data="t:livezone"),
                 InlineKeyboardButton(text="🌫 Атмосферна подія", callback_data="t:event"),
@@ -70,6 +74,15 @@ def test_menu() -> InlineKeyboardMarkup:
                 InlineKeyboardButton(text="☠️ Смерть", callback_data="t:death"),
                 InlineKeyboardButton(text="💉 Порятунок / тиха ніч", callback_data="t:morning"),
             ],
+        ]
+    )
+
+
+def legend_preview_menu() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🎲 Ще легенда", callback_data="t:legend")],
+            [InlineKeyboardButton(text="↩️ До тестів", callback_data="t:menu")],
         ]
     )
 
@@ -176,9 +189,9 @@ async def test_command(message: Message) -> None:
 
     await message.answer(
         "🧪 <b>ТЕСТОВИЙ ПОЛІГОН ПДА</b>\n\n"
-        "Тут можна одному перевіряти локальні арти ПДА, етапи, нічні меню, баланс, події, "
-        "режим «Жива Зона» і симуляцію складу. Тест не записується в статистику й не "
-        "запускає справжню партію.",
+        f"Тут можна одному перевіряти локальні арти ПДА, {len(LEGENDS)} легенд, етапи, "
+        "нічні меню, баланс, події, режим «Жива Зона» і симуляцію складу. Тест не "
+        "записується в статистику й не запускає справжню партію.",
         reply_markup=test_menu(),
     )
 
@@ -204,11 +217,19 @@ async def test_callback(query: CallbackQuery) -> None:
         await query.message.answer("🧪 <b>Тестовий полігон</b>", reply_markup=test_menu())
         return
 
+    if action == "legend":
+        legend = random_legend()
+        await query.message.answer(
+            legend.render(),
+            reply_markup=legend_preview_menu(),
+        )
+        return
+
     if action == "cards":
         await query.message.answer(
             "🎴 <b>Локальні арти ПДА</b>\n\n"
             "Обери роль. Тут показуються тільки твої файли з <code>data/private_role_art/</code>: "
-            "5 Бандитів, 10 Вільних, Медик, Розвідник і Кровосос.",
+            "5 Бандитів, 10 Вільних, Лікар, Розвідник і Кровосос.",
             reply_markup=card_role_menu(),
         )
         return
@@ -273,7 +294,7 @@ async def test_callback(query: CallbackQuery) -> None:
         panels = (
             ("🔪 <b>Братва: кого прибрати?</b>", "Двоє бандитів мають обрати одну ціль."),
             ("🔎 <b>Розвідник: кого перевірити?</b>", "ПДА покаже: ЗАГРОЗА або ЧИСТО."),
-            ("💉 <b>Польовий медик: кого підлатати?</b>", "Можна рятувати й себе."),
+            ("💉 <b>Лікар: кого врятувати?</b>", "Можна рятувати й себе."),
             ("🧛 <b>Полювання Кровососа</b>", "Можна обрати будь-яку іншу живу ціль."),
         )
         for title, text in panels:

@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import html
 
-from aiogram.exceptions import TelegramForbiddenError
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.types import BufferedInputFile
 
 from app.game.rules import MAFIA_ROLES, ROLE_DESCRIPTIONS, ROLE_FACTIONS, ROLE_TITLES, Role
 from app.keyboards import role_card_help_keyboard
 from app.playtest_service import PlaytestGameService
 from app.private_role_art import ROLE_ART, load_private_role_art, role_art_assignments
-from app.role_cards import load_ready_role_card
 from app.zone_features import callsigns_for
 
 
@@ -29,10 +28,7 @@ class PrivateArtGameService(PlaytestGameService):
             role_user_ids = [
                 player.user_id
                 for player in players
-                if (
-                    Role.MAFIA.value if player.role in MAFIA_ROLES else player.role
-                )
-                == art_role
+                if (Role.MAFIA.value if player.role in MAFIA_ROLES else player.role) == art_role
             ]
             authored_art.update(role_art_assignments(game_id, art_role, role_user_ids))
 
@@ -56,29 +52,24 @@ class PrivateArtGameService(PlaytestGameService):
             caption += "\n\n📵 Не світи ПДА іншим."
             markup = role_card_help_keyboard(game_id)
 
-            try:
-                art = authored_art.get(player.user_id)
-                if art is not None:
-                    try:
-                        image = load_private_role_art(art)
-                        filename = f"pda_{art.role}_{art.asset_key}.jpg"
-                    except (OSError, ValueError):
-                        image = load_ready_role_card(role, callsign)
-                        filename = f"pda_{role}_{callsign}.jpg"
-                else:
-                    image = load_ready_role_card(role, callsign)
-                    filename = f"pda_{role}_{callsign}.jpg"
-
-                await self.bot.send_photo(
-                    player.user_id,
-                    BufferedInputFile(image, filename=filename),
-                    caption=caption,
-                    reply_markup=markup,
-                )
-            except (OSError, ValueError):
+            art = authored_art.get(player.user_id)
+            if art is not None:
                 try:
-                    await self.bot.send_message(player.user_id, caption, reply_markup=markup)
-                except TelegramForbiddenError:
+                    image = load_private_role_art(art)
+                    await self.bot.send_photo(
+                        player.user_id,
+                        BufferedInputFile(image, filename=f"pda_{art.role}_{art.asset_key}.jpg"),
+                        caption=caption,
+                        reply_markup=markup,
+                    )
+                    continue
+                except (OSError, ValueError, TelegramBadRequest, TelegramForbiddenError):
+                    # Missing/invalid authored art must never break role delivery.
                     pass
+
+            # No procedural picture fallback: if a local authored portrait is absent,
+            # send the role as text so it is obvious which server file still needs fixing.
+            try:
+                await self.bot.send_message(player.user_id, caption, reply_markup=markup)
             except TelegramForbiddenError:
                 pass

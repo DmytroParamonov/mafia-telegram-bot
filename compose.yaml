@@ -4,5 +4,11 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      # Compose reads this from either the shell prefix
+      # ADMIN_USER_IDS=123 ./run.sh
+      # or the local .env file. Declaring it explicitly guarantees that the
+      # admin list reaches the container instead of being lost at the run.sh layer.
+      ADMIN_USER_IDS: ${ADMIN_USER_IDS:-}
     volumes:
       - ./data:/app/data

@@ -55,14 +55,17 @@ async def _visual_home_payload(
 
 async def _send_visual_home(message: Message, economy: EconomyService, user_id: int) -> None:
     card, data = await _visual_home_payload(economy, user_id)
+    is_admin = economy.is_admin(user_id)
+    admin_line = "\n🛡 <b>Адмін-доступ: активний</b>" if is_admin else ""
     await message.answer_photo(
         BufferedInputFile(card, filename=f"pda-{user_id}.png"),
         caption=(
             "📟 <b>ОСОБИСТИЙ ПДА</b>\n"
-            f"🎨 {html.escape(str(data['theme']))}\n\n"
+            f"🎨 {html.escape(str(data['theme']))}"
+            f"{admin_line}\n\n"
             "Магазин, колекція та редактор доступні навіть між ходками."
         ),
-        reply_markup=_home_keyboard(is_admin=economy.is_admin(user_id)),
+        reply_markup=_home_keyboard(is_admin=is_admin),
     )
 
 
@@ -94,6 +97,56 @@ async def visual_home_callback(query: CallbackQuery, economy_service: EconomySer
         return
     await query.answer()
     await _send_visual_home(query.message, economy_service, query.from_user.id)
+
+
+@router.callback_query(F.data == "eco:shopcat:slot")
+async def visual_showcase_slot_shop(query: CallbackQuery, economy_service: EconomyService) -> None:
+    """Show the free first showcase slot explicitly, then the paid expansions."""
+    if query.message is None:
+        return
+    await query.answer()
+    items, _, balance = await economy_service.shop_for_user(query.from_user.id, "slot")
+    data = await economy_service.profile_data(query.from_user.id)
+    current_slots = int(data["showcase_slots"])
+
+    rows: list[list[InlineKeyboardButton]] = [
+        [
+            InlineKeyboardButton(
+                text="🧿 Перший слот вітрини — ✅ БЕЗКОШТОВНО",
+                callback_data="eco:noop",
+            )
+        ]
+    ]
+    for item in items:
+        effect_value = int(item.effect_value or 1)
+        if current_slots >= effect_value:
+            rows.append(
+                [
+                    InlineKeyboardButton(
+                        text=f"{item.name} — ✅ ВІДКРИТО",
+                        callback_data="eco:noop",
+                    )
+                ]
+            )
+        else:
+            rows.append(
+                [
+                    InlineKeyboardButton(
+                        text=f"{item.name} — 💰{item.price}",
+                        callback_data=f"eco:item:{item.key}",
+                    )
+                ]
+            )
+    rows.append([InlineKeyboardButton(text="↩️ До магазину", callback_data="eco:shop")])
+
+    await query.message.answer(
+        "🧿 <b>ВІТРИНА ТРОФЕЇВ</b>\n\n"
+        "Перший слот є у кожного гравця відразу й нічого не коштує. "
+        "За хабар купуються тільки додаткові місця для колекції.\n\n"
+        f"🖼 Відкрито слотів: <b>{current_slots}</b>\n"
+        f"📦 Баланс: <b>{balance}</b>",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+    )
 
 
 async def _standard_activate(economy: EconomyService, user_id: int) -> None:

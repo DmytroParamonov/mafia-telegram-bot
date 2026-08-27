@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from collections import Counter
-
 from aiogram.exceptions import TelegramForbiddenError
 from sqlalchemy import func, select
 
@@ -13,7 +11,7 @@ from app.economy import (
     EconomyService,
 )
 from app.economy_models import GameHabarEvent
-from app.game.rules import HOSTILE_ROLES, MAFIA_ROLES, Role, unique_vote_winner
+from app.game.rules import HOSTILE_ROLES, MAFIA_ROLES, unique_vote_winner
 from app.models import DayVote, Game, NightAction
 from app.private_art_service import PrivateArtGameService
 

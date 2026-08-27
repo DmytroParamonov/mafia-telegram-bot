@@ -7,6 +7,7 @@ from aiogram.types import BufferedInputFile
 
 from app.game.rules import MAFIA_ROLES, ROLE_DESCRIPTIONS, ROLE_FACTIONS, ROLE_TITLES, Role
 from app.keyboards import role_card_help_keyboard
+from app.legends import legend_assignments
 from app.playtest_service import PlaytestGameService
 from app.private_role_art import ROLE_ART, load_private_role_art, role_art_assignments
 
@@ -20,6 +21,7 @@ class PrivateArtGameService(PlaytestGameService):
 
         labels = self._labels(game_id, players)
         bandits = [player for player in players if player.role in MAFIA_ROLES]
+        legends = legend_assignments(game_id, [player.user_id for player in players])
 
         authored_art = {}
         for art_role in ROLE_ART:
@@ -49,6 +51,7 @@ class PrivateArtGameService(PlaytestGameService):
             caption += "\n\n📵 Не світи ПДА іншим."
             markup = role_card_help_keyboard(game_id)
 
+            role_delivered = False
             art = authored_art.get(player.user_id)
             if art is not None:
                 try:
@@ -59,14 +62,23 @@ class PrivateArtGameService(PlaytestGameService):
                         caption=caption,
                         reply_markup=markup,
                     )
-                    continue
+                    role_delivered = True
                 except (OSError, ValueError, TelegramBadRequest, TelegramForbiddenError):
                     # Missing/invalid authored art must never break role delivery.
                     pass
 
-            # No procedural picture fallback: if a local authored portrait is absent,
-            # send the role as text so it is obvious which server file still needs fixing.
-            try:
-                await self.bot.send_message(player.user_id, caption, reply_markup=markup)
-            except TelegramForbiddenError:
-                pass
+            if not role_delivered:
+                # No procedural picture fallback: if a local authored portrait is absent,
+                # send the role as text so it is obvious which server file still needs fixing.
+                try:
+                    await self.bot.send_message(player.user_id, caption, reply_markup=markup)
+                    role_delivered = True
+                except TelegramForbiddenError:
+                    pass
+
+            if role_delivered:
+                legend = legends[player.user_id]
+                try:
+                    await self.bot.send_message(player.user_id, legend.render())
+                except TelegramForbiddenError:
+                    pass

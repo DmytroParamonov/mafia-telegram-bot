@@ -15,6 +15,10 @@ data/phase_art/*.jpg
 data/phase_art/*.jpeg
 data/phase_art/*.png
 data/phase_art/*.webp
+data/pda_themes/**/*.jpg
+data/pda_themes/**/*.jpeg
+data/pda_themes/**/*.png
+data/pda_themes/**/*.webp
 .idea/
 .vscode/
 .DS_Store

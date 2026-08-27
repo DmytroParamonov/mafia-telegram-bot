@@ -9,20 +9,21 @@ from app.stalker_theme import StalkerBot, stalkerize_text
 
 
 KAIMANOV_REPLACEMENTS = (
-    ("Польовий медик", "Доктор Кайманов"),
-    ("ПОЛЬОВИЙ МЕДИК", "ДОКТОР КАЙМАНОВ"),
-    ("польовий медик", "Доктор Кайманов"),
+    ("Польовий медик", "Лікар"),
+    ("ПОЛЬОВИЙ МЕДИК", "ЛІКАР"),
+    ("польовий медик", "лікар"),
 )
 
 
 def kaimanovize_text(text: str) -> str:
+    """Normalize legacy medic wording while Kaimanov remains the character name."""
     for source, target in KAIMANOV_REPLACEMENTS:
         text = text.replace(source, target)
     return text
 
 
 class PhaseArtStalkerBot(StalkerBot):
-    """STALKER bot with local day/night group art and Kaimanov naming."""
+    """STALKER bot with local day/night group art and current role wording."""
 
     async def __call__(
         self,

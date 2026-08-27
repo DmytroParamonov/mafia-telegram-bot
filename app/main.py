@@ -12,9 +12,10 @@ from aiogram.types import BotCommand
 from app.config import Settings
 from app.db import init_db, make_engine, make_session_factory
 from app.handlers import router
+from app.phase_art import ensure_phase_art_dir
+from app.phase_art_bot import PhaseArtStalkerBot
 from app.private_art_service import PrivateArtGameService
 from app.private_role_art import ensure_private_role_art_dirs
-from app.stalker_theme import StalkerBot
 from app.test_mode import router as test_router
 from app.zone_handlers import router as zone_router
 
@@ -30,11 +31,12 @@ async def main() -> None:
     session_factory = make_session_factory(engine)
     await init_db(engine)
 
-    # Authored PDA portraits live only on the bot host. We only ensure the
-    # expected folders exist; no legacy 100-card pack is generated at startup.
+    # Authored PDA portraits and public day/night artwork live only on the bot
+    # host. The repository keeps only the code and empty folder structure.
     ensure_private_role_art_dirs()
+    ensure_phase_art_dir()
 
-    bot = StalkerBot(
+    bot = PhaseArtStalkerBot(
         token=settings.bot_token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )

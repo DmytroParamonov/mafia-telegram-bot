@@ -11,6 +11,10 @@ data/private_role_art/**/*.jpg
 data/private_role_art/**/*.jpeg
 data/private_role_art/**/*.png
 data/private_role_art/**/*.webp
+data/phase_art/*.jpg
+data/phase_art/*.jpeg
+data/phase_art/*.png
+data/phase_art/*.webp
 .idea/
 .vscode/
 .DS_Store

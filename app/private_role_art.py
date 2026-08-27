@@ -44,7 +44,7 @@ ROLE_ART: dict[str, tuple[PrivateRoleArt, ...]] = {
         PrivateRoleArt(Role.CIVILIAN.value, "Льоха Кузнєц", "10"),
     ),
     Role.DOCTOR.value: (
-        PrivateRoleArt(Role.DOCTOR.value, "Польовий медик", "01"),
+        PrivateRoleArt(Role.DOCTOR.value, "Доктор Кайманов", "01"),
     ),
     Role.SHERIFF.value: (
         PrivateRoleArt(Role.SHERIFF.value, "Розвідник", "01"),

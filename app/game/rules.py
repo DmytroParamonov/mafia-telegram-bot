@@ -23,7 +23,7 @@ ROLE_TITLES = {
     Role.MAFIA.value: "🔪 Бандит",
     Role.DON.value: "👑 Авторитет",
     Role.SHERIFF.value: "🔎 Розвідник",
-    Role.DOCTOR.value: "💉 Доктор Кайманов",
+    Role.DOCTOR.value: "💉 Лікар",
     Role.BLOODSUCKER.value: "🧛 Кровосос",
 }
 

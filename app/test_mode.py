@@ -17,7 +17,7 @@ from app.game.rules import (
     zone_role_counts,
 )
 from app.live_zone import live_zone_effect, phase_seconds
-from app.role_cards import load_ready_role_card, prepare_role_card_pack
+from app.private_role_art import PRIVATE_ART_ROOT, ROLE_ART, load_private_role_art, private_role_art_path
 from app.zone_features import (
     CALLSIGNS,
     INTRO_SECONDS,
@@ -51,7 +51,7 @@ def test_menu() -> InlineKeyboardMarkup:
         inline_keyboard=[
             [
                 InlineKeyboardButton(text="🎴 Картки ПДА", callback_data="t:cards"),
-                InlineKeyboardButton(text="📦 Перевірити 100 карток", callback_data="t:cardpack"),
+                InlineKeyboardButton(text="📦 Перевірити 18 артів", callback_data="t:cardpack"),
             ],
             [
                 InlineKeyboardButton(text="🔥 Етапи ходки", callback_data="t:flow"),
@@ -85,18 +85,22 @@ def card_role_menu() -> InlineKeyboardMarkup:
 
 
 def card_nav(role: str, index: int) -> InlineKeyboardMarkup:
-    previous = (index - 1) % len(CALLSIGNS)
-    following = (index + 1) % len(CALLSIGNS)
+    count = len(ROLE_ART.get(role, ()))
+    if count <= 1:
+        navigation = [
+            InlineKeyboardButton(text=f"{1 if count else 0}/{count}", callback_data="t:noop")
+        ]
+    else:
+        previous = (index - 1) % count
+        following = (index + 1) % count
+        navigation = [
+            InlineKeyboardButton(text="◀️", callback_data=f"t:card:{role}:{previous}"),
+            InlineKeyboardButton(text=f"{index + 1}/{count}", callback_data="t:noop"),
+            InlineKeyboardButton(text="▶️", callback_data=f"t:card:{role}:{following}"),
+        ]
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [
-                InlineKeyboardButton(text="◀️", callback_data=f"t:card:{role}:{previous}"),
-                InlineKeyboardButton(
-                    text=f"{index + 1}/{len(CALLSIGNS)}",
-                    callback_data="t:noop",
-                ),
-                InlineKeyboardButton(text="▶️", callback_data=f"t:card:{role}:{following}"),
-            ],
+            navigation,
             [InlineKeyboardButton(text="🎴 Інша роль", callback_data="t:cards")],
             [InlineKeyboardButton(text="↩️ До тестів", callback_data="t:menu")],
         ]
@@ -126,18 +130,32 @@ def sample_targets() -> InlineKeyboardMarkup:
     )
 
 
-async def _send_ready_card(message: Message, role: str, index: int) -> None:
-    if role not in TEST_ROLES:
+async def _send_local_card(message: Message, role: str, index: int) -> None:
+    pool = ROLE_ART.get(role, ())
+    if not pool:
         await message.answer("🧪 Невідома роль для тесту.")
         return
-    index %= len(CALLSIGNS)
-    callsign = CALLSIGNS[index]
-    image = load_ready_role_card(role, callsign)
+
+    index %= len(pool)
+    art = pool[index]
+    path = private_role_art_path(art)
+    if path is None:
+        expected = PRIVATE_ART_ROOT / role / f"{art.asset_key}.jpg"
+        await message.answer(
+            "⚠️ <b>Локальний арт не знайдено.</b>\n\n"
+            f"Персонаж: <b>{html.escape(art.internal_name)}</b>\n"
+            f"Поклади файл сюди:\n<code>{html.escape(str(expected))}</code>\n\n"
+            "Також підійдуть .jpeg, .png або .webp з тим самим номером.",
+            reply_markup=card_nav(role, index),
+        )
+        return
+
+    image = load_private_role_art(art)
     await message.answer_photo(
-        BufferedInputFile(image, filename=f"pda_{role}_{index:02d}.jpg"),
+        BufferedInputFile(image, filename=path.name),
         caption=(
-            f"📟 <b>Готова картка #{index + 1}</b>\n\n"
-            f"Позивний: <b>{html.escape(callsign)}</b>\n"
+            f"📟 <b>Локальний арт #{index + 1}</b>\n\n"
+            f"Персонаж: <b>{html.escape(art.internal_name)}</b>\n"
             f"Роль: <b>{ROLE_TITLES[role]}</b>\n"
             f"Фракція: <b>{ROLE_FACTIONS[role]}</b>\n\n"
             f"{ROLE_DESCRIPTIONS[role]}"
@@ -158,7 +176,7 @@ async def test_command(message: Message) -> None:
 
     await message.answer(
         "🧪 <b>ТЕСТОВИЙ ПОЛІГОН ПДА</b>\n\n"
-        "Тут можна одному перевіряти готові картки, етапи, нічні меню, баланс, події, "
+        "Тут можна одному перевіряти локальні арти ПДА, етапи, нічні меню, баланс, події, "
         "режим «Жива Зона» і симуляцію складу. Тест не записується в статистику й не "
         "запускає справжню партію.",
         reply_markup=test_menu(),
@@ -188,7 +206,9 @@ async def test_callback(query: CallbackQuery) -> None:
 
     if action == "cards":
         await query.message.answer(
-            "🎴 <b>Готові картки ПДА</b>\n\nОбери роль. Стрілками можна переглянути всі 20 позивних.",
+            "🎴 <b>Локальні арти ПДА</b>\n\n"
+            "Обери роль. Тут показуються тільки твої файли з <code>data/private_role_art/</code>: "
+            "5 Бандитів, 10 Вільних, Медик, Розвідник і Кровосос.",
             reply_markup=card_role_menu(),
         )
         return
@@ -199,17 +219,30 @@ async def test_callback(query: CallbackQuery) -> None:
         except ValueError:
             await query.message.answer("🧪 Некоректний номер картки.")
             return
-        await _send_ready_card(query.message, parts[2], index)
+        await _send_local_card(query.message, parts[2], index)
         return
 
     if action == "cardpack":
-        count = prepare_role_card_pack()
-        await query.message.answer(
-            "📦 <b>Пак карток готовий.</b>\n\n"
-            f"На диску є <b>{count}</b> готових JPEG-карток: "
-            f"{len(CALLSIGNS)} позивних × {len(TEST_ROLES)} ролей.\n"
-            "Під час справжньої ходки бот лише бере потрібний готовий файл і відправляє його."
+        present = 0
+        missing: list[str] = []
+        for role, pool in ROLE_ART.items():
+            for art in pool:
+                if private_role_art_path(art) is not None:
+                    present += 1
+                else:
+                    missing.append(f"• {role}/{art.asset_key}.jpg — {art.internal_name}")
+
+        total = sum(len(pool) for pool in ROLE_ART.values())
+        text = (
+            "📦 <b>Перевірка локальних артів</b>\n\n"
+            f"Знайдено: <b>{present}/{total}</b>.\n"
+            f"Папка: <code>{PRIVATE_ART_ROOT}</code>"
         )
+        if missing:
+            text += "\n\n⚠️ <b>Не знайдено:</b>\n" + "\n".join(missing)
+        else:
+            text += "\n\n✅ Усі 18 приватних артів на місці. Бот братиме саме їх у реальній ходці."
+        await query.message.answer(text)
         return
 
     if action == "flow":

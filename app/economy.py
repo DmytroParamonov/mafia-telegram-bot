@@ -191,9 +191,6 @@ class EconomyService:
                 "showcase": [(slot.slot, trophy.name) for slot, trophy in showcase],
             }
 
-    async def list_shop(self, category: str) -> tuple[list[ShopItem], set[str], int]:
-        raise RuntimeError("user_id required")
-
     async def shop_for_user(self, user_id: int, category: str) -> tuple[list[ShopItem], set[str], int]:
         async with self.session_factory() as session:
             account = await self._account(session, user_id)
@@ -506,7 +503,10 @@ class EconomyService:
                         )
 
                 account = await self._account(session, player.user_id)
-                payout = min(wallet.run_habar, GAME_MINT_CAP) if eligible else 0
+                # GAME_MINT_CAP limits only newly created reward currency.
+                # Bandit loot is a transfer between run wallets and therefore
+                # must remain fully withdrawable instead of disappearing here.
+                payout = max(wallet.run_habar, 0) if eligible else 0
                 trophy_name = None
                 if payout:
                     account.balance += payout

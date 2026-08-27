@@ -14,7 +14,6 @@ from app.db import init_db, make_engine, make_session_factory
 from app.handlers import router
 from app.private_art_service import PrivateArtGameService
 from app.private_role_art import ensure_private_role_art_dirs
-from app.role_cards import prepare_role_card_pack
 from app.stalker_theme import StalkerBot
 from app.test_mode import router as test_router
 from app.zone_handlers import router as zone_router
@@ -31,9 +30,9 @@ async def main() -> None:
     session_factory = make_session_factory(engine)
     await init_db(engine)
 
+    # Authored PDA portraits live only on the bot host. We only ensure the
+    # expected folders exist; no legacy 100-card pack is generated at startup.
     ensure_private_role_art_dirs()
-    card_count = prepare_role_card_pack()
-    logging.info("Ready PDA role-card pack: %s cards", card_count)
 
     bot = StalkerBot(
         token=settings.bot_token,
@@ -66,7 +65,7 @@ async def main() -> None:
     scheduler_task = asyncio.create_task(game_service.phase_loop(), name="stalker-phase-scheduler")
 
     try:
-        logging.info("Starting STALKER game bot @%s", me.username)
+        logging.info("Starting Mafia in the Zone bot @%s", me.username)
         await dispatcher.start_polling(bot, game_service=game_service)
     finally:
         scheduler_task.cancel()

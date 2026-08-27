@@ -9,7 +9,6 @@ from app.game.rules import MAFIA_ROLES, ROLE_DESCRIPTIONS, ROLE_FACTIONS, ROLE_T
 from app.keyboards import role_card_help_keyboard
 from app.playtest_service import PlaytestGameService
 from app.private_role_art import ROLE_ART, load_private_role_art, role_art_assignments
-from app.zone_features import callsigns_for
 
 
 class PrivateArtGameService(PlaytestGameService):
@@ -20,7 +19,6 @@ class PrivateArtGameService(PlaytestGameService):
             players = await self._players(session, game_id)
 
         labels = self._labels(game_id, players)
-        callsigns = callsigns_for(game_id, [player.user_id for player in players])
         bandits = [player for player in players if player.role in MAFIA_ROLES]
 
         authored_art = {}
@@ -34,7 +32,6 @@ class PrivateArtGameService(PlaytestGameService):
 
         for player in players:
             role = player.role or Role.CIVILIAN.value
-            callsign = callsigns[player.user_id]
             caption = (
                 f"📟 <b>{html.escape(labels[player.user_id])}</b>\n\n"
                 f"Твоя роль: <b>{ROLE_TITLES[role]}</b>\n"
